@@ -14,8 +14,8 @@ public class Posicion : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        playerController.AttachPlayerToSeat(seatTransform);
-        // Invoke("test", 1);
+        //playerController.AttachPlayerToSeat(seatTransform);
+         Invoke("test", 1);
     }
 
     void test()
