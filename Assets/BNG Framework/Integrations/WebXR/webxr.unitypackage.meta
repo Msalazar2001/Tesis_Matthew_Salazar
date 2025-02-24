@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 0f68aca00c682624da10f3f79578c9da
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 161066
+  packageName: VR Interaction Framework
+  packageVersion: 3.0.4
+  assetPath: Assets/BNG Framework/Integrations/WebXR/webxr.unitypackage
+  uploadId: 701518

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: a7ed4fd1677e1484987f5b520269f264
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 161066
+  packageName: VR Interaction Framework
+  packageVersion: 3.0.4
+  assetPath: Assets/BNG Framework/Integrations/FinalIK/FinalIK.unitypackage
+  uploadId: 701518
