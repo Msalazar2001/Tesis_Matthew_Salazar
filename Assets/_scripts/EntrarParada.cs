@@ -1,3 +1,4 @@
+using BNG;
 using UnityEngine;
 
 public class EntrarParada : MonoBehaviour
@@ -5,14 +6,22 @@ public class EntrarParada : MonoBehaviour
     [SerializeField]
      Bus bus;
 
-    private void OnTriggerEnter(Collider other)
+    [SerializeField]
+    VehicleController vehicleController;
+
+    bool envioParada = false;
+
+    private void OnTriggerStay(Collider other)
     {
-        if (other.CompareTag("Parada"))
+
+        if (other.CompareTag("Parada") && vehicleController.CurrentSpeed==0 && !envioParada)
         {
+            print("Llegamos");
             Parada parada = other.GetComponent<Parada>();
             if (parada != null)
             {
                 bus.ParadaDetectada(parada);
+                envioParada=true;
             }
         }
     }
@@ -25,7 +34,11 @@ public class EntrarParada : MonoBehaviour
             if (parada != null)
             {
                 bus.SalirDeParada(parada); //
+                envioParada=false;
             }
+
         }
     }
+
+    
 }

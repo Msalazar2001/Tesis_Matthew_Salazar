@@ -238,10 +238,20 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3865729070604274062, guid: efe6b78904eae534dad44057fdb6c43d,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.548
+      objectReference: {fileID: 0}
+    - target: {fileID: 3865729070604274062, guid: efe6b78904eae534dad44057fdb6c43d,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 1.96
+      objectReference: {fileID: 0}
     - target: {fileID: 3865729070604274063, guid: efe6b78904eae534dad44057fdb6c43d,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3884561582175993558, guid: efe6b78904eae534dad44057fdb6c43d,
         type: 3}
@@ -1074,6 +1084,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bus: {fileID: 1425363062}
+  vehicleController: {fileID: 1425363074}
 --- !u!4 &1030678135 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6914483157901533553, guid: efe6b78904eae534dad44057fdb6c43d,
@@ -1215,7 +1226,7 @@ PrefabInstance:
     - target: {fileID: 7032516621639002393, guid: 218eb7bab6a03354b8879c181221c962,
         type: 3}
       propertyPath: EmulatorEnabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8588139072967353820, guid: 218eb7bab6a03354b8879c181221c962,
         type: 3}
@@ -1306,7 +1317,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 113fe2ce591757c42bd811432145f6dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  espacioDisponible: 3
+  espacioDisponible: 10
+  vehicleController: {fileID: 1425363074}
+--- !u!114 &1425363074 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5293350855907461821, guid: efe6b78904eae534dad44057fdb6c43d,
+    type: 3}
+  m_PrefabInstance: {fileID: 359866952}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1425363047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13d7e6df6c45338459dbbbe98a91f2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1460902577 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6673597524818487299, guid: 218eb7bab6a03354b8879c181221c962,
