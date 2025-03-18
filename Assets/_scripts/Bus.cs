@@ -13,32 +13,55 @@ public class Bus : MonoBehaviour
 
     public bool estoyEnParada = false;
 
+    public int pasajerosActuales = 0;
+    public int pasajerosBajando = 0;
+
     public void ParadaDetectada(Parada parada)
     {
         this.parada = parada;
-        print("El bus detecto una parada y hay: " +parada.cantidadPasajeros);
-        parada.RecibirBus(espacioDisponible);
 
-        InvokeRepeating("SubirPasajeros", 1,2);
+        // Elegir cuántos pasajeros se van a bajar en esta parada
+        pasajerosBajando = Random.Range(0, pasajerosActuales + 1);
+        print("Se van a bajar " + pasajerosBajando + " pasajeros.");
 
+        InvokeRepeating("BajarPasajeros", 1, 2); // bajar de a uno
+        InvokeRepeating("SubirPasajeros", 1, 2); // subir de a uno
     }
 
     public void SalirDeParada(Parada parada)
     {
         print("El bus ha salido de la parada.");
     }
-    private void Update()
-    {
-        //print(vehicleController.CurrentSpeed);
-    }
+
     public void SubirPasajeros()
     {
-        parada.cantidadPasajeros--;
-        espacioDisponible--;
-        if(parada.cantidadPasajeros==0 || espacioDisponible==0)
+        if (parada.cantidadPasajeros > 0 && espacioDisponible > 0)
+        {
+            parada.cantidadPasajeros--;
+            espacioDisponible--;
+            pasajerosActuales++;
+            print("Subió un pasajero. Total pasajeros: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
+        }
+
+        if (parada.cantidadPasajeros == 0 || espacioDisponible == 0)
         {
             CancelInvoke("SubirPasajeros");
         }
     }
 
+    public void BajarPasajeros()
+    {
+        if (pasajerosBajando > 0)
+        {
+            pasajerosActuales--;
+            espacioDisponible++;
+            pasajerosBajando--;
+            print("Bajó un pasajero. Quedan: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
+        }
+
+        if (pasajerosBajando == 0)
+        {
+            CancelInvoke("BajarPasajeros");
+        }
+    }
 }

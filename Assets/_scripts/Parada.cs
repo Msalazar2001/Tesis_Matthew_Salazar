@@ -4,15 +4,15 @@ using System.Collections.Generic;
 public class Parada : MonoBehaviour
 {
     [SerializeField]
-     GameObject pasajeroPrefab;
+    GameObject pasajeroPrefab;
     [SerializeField]
-     Transform puntoSpawn;
+    Transform puntoSpawn;
     [SerializeField]
-     float separacionEntrePasajeros = 1.5f;
+    float separacionEntrePasajeros = 1.5f;
     [SerializeField]
-     int minPasajeros = 1;
+    int minPasajeros = 1;
     [SerializeField]
-     int maxPasajeros = 5;
+    int maxPasajeros = 5;
     public int cantidadPasajeros;
 
     private List<GameObject> pasajerosEnParada = new List<GameObject>();
@@ -27,12 +27,12 @@ public class Parada : MonoBehaviour
     {
         print($"Generando {cantidad} pasajeros en la parada.");
 
-        /*or (int i = 0; i < cantidad; i++)
+        for (int i = 0; i < cantidad; i++)
         {
             Vector3 offset = new Vector3(i * separacionEntrePasajeros, 0, 0);
             GameObject pasajero = Instantiate(pasajeroPrefab, puntoSpawn.position + offset, Quaternion.identity, transform);
             pasajerosEnParada.Add(pasajero);
-        }*/
+        }
     }
 
     public void RecibirBus(int espacioDisponible)
