@@ -15,7 +15,7 @@ public class Bus : MonoBehaviour
 
     public int pasajerosActuales = 0;
     public int pasajerosBajando = 0;
-
+    public int totalPasajerosRecogidos = 0;
     public void ParadaDetectada(Parada parada)
     {
         this.parada = parada;
@@ -26,6 +26,11 @@ public class Bus : MonoBehaviour
 
         InvokeRepeating("BajarPasajeros", 1, 2); // bajar de a uno
         InvokeRepeating("SubirPasajeros", 1, 2); // subir de a uno
+
+        if(parada.ultimaParada)
+        {
+            EnviarTotalPasajeros();
+        }
     }
 
     public void SalirDeParada(Parada parada)
@@ -40,6 +45,7 @@ public class Bus : MonoBehaviour
             parada.cantidadPasajeros--;
             espacioDisponible--;
             pasajerosActuales++;
+            totalPasajerosRecogidos++;
             print("Subió un pasajero. Total pasajeros: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
         }
 
@@ -63,5 +69,16 @@ public class Bus : MonoBehaviour
         {
             CancelInvoke("BajarPasajeros");
         }
+    }
+
+    public int PasajerosRecogidos()
+    {
+        return totalPasajerosRecogidos;
+    }
+
+    public void EnviarTotalPasajeros()
+    {
+        GameManager.Instance.RecibirPasajerosRecogidos(totalPasajerosRecogidos);
+        print("Total Pasajeros Recogidos" + totalPasajerosRecogidos);
     }
 }

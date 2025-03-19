@@ -15,6 +15,8 @@ public class Parada : MonoBehaviour
     int maxPasajeros = 5;
     public int cantidadPasajeros;
 
+    public bool ultimaParada = false;
+
     private List<GameObject> pasajerosEnParada = new List<GameObject>();
 
     void Start()
