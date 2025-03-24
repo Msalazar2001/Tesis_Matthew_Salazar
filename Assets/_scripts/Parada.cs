@@ -21,11 +21,18 @@ public class Parada : MonoBehaviour
 
     void Start()
     {
-        cantidadPasajeros = Random.Range(minPasajeros, maxPasajeros + 1);
-        GenerarPasajeros(cantidadPasajeros);
-    }
+        if (!ultimaParada)
+        {
+            cantidadPasajeros = Random.Range(minPasajeros, maxPasajeros + 1);
+            GenerarPasajeros(cantidadPasajeros);
 
-    private void GenerarPasajeros(int cantidad)
+        }
+        else if(ultimaParada == true)
+            cantidadPasajeros = 0;
+     }
+
+    
+        private void GenerarPasajeros(int cantidad)
     {
         print($"Generando {cantidad} pasajeros en la parada.");
 
