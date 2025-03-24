@@ -12,7 +12,8 @@ public class GameManager : MonoBehaviour
     // Cronómetro (tiempo total desde que inicia el juego)
     float tiempoTotal = 0f;
     bool contarTiempo = false;
-    [SerializeField] float tiempoPropuesto; // editable desde el Inspector
+    [SerializeField]
+    float tiempoPropuesto;
 
     float penalizacionPorSegundo = 1.5f;
 
@@ -101,5 +102,10 @@ public class GameManager : MonoBehaviour
     public float ObtenerTiempoTotal()
     {
         return tiempoTotal;
+    }
+
+    public void HacerDano(float t)
+    {
+        print(t);
     }
 }
