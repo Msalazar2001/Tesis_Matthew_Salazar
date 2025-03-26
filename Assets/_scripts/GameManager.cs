@@ -17,7 +17,10 @@ public class GameManager : MonoBehaviour
 
     float penalizacionPorSegundo = 1.5f;
 
+    [SerializeField]
+    float danoTotal=0;
 
+    float descuento = 0;
     private void Awake()
     {
         Instance = this;
@@ -51,25 +54,22 @@ public class GameManager : MonoBehaviour
         if (tiempoTotal > tiempoPropuesto)
         {
             float diferencia = tiempoTotal - tiempoPropuesto;
-            float descuento = diferencia * penalizacionPorSegundo;
+            descuento = diferencia * penalizacionPorSegundo;
 
             print("El jugador se demoró " + diferencia + " segundos más de lo propuesto.");
             print("Penalización aplicada: $" + descuento);
-
-            dineroFinal = dineroGanado - descuento;
 
             if (dineroFinal < 0)
             {
                 dineroFinal = 0;
             }
 
-            print("Dinero final con penalización: $" + dineroFinal);
+            //print("Dinero final con penalización: $" + dineroFinal);
         }
         else
         {
             dineroFinal = dineroGanado;
             print("El jugador completó el recorrido dentro del tiempo propuesto.");
-            print("Dinero final: $" + dineroFinal);
         }
     }
 
@@ -78,7 +78,7 @@ public class GameManager : MonoBehaviour
     {
         totalPasajerosRecogidos = cantidad;
         dineroGanado = totalPasajerosRecogidos * 2.5f;
-        dineroFinal = dineroGanado;
+        //dineroFinal = dineroGanado;
 
         print("GameManager recibió: " + cantidad + " pasajeros.");
         print("Dinero final: $" + dineroFinal);
@@ -106,6 +106,26 @@ public class GameManager : MonoBehaviour
 
     public void HacerDano(float t)
     {
+       
+        danoTotal += t;
         print(t);
+        //dineroFinal = dineroGanado - danoTotal;
     }
+
+    public float CalcularValores()
+    {
+        float resultadoFinal = 0;
+        resultadoFinal = dineroFinal-danoTotal-descuento;
+
+        print("----- RESUMEN FINAL -----");
+        print("Pasajeros recogidos: " + totalPasajerosRecogidos);
+        print("Dinero base ganado: $" + dineroGanado);
+        print("Descuento por tiempo: $" + descuento);
+        print("Daño total acumulado: $" + danoTotal);
+        print("Resultado final: $" + resultadoFinal);
+
+        return resultadoFinal;
+
+    }
+
 }

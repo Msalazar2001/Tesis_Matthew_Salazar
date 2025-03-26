@@ -178,7 +178,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e4a9e387c8ae2d4ebfe81d8eb474d52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tiempoPropuesto: 20
+  tiempoPropuesto: 40
+  danoTotal: 0
 --- !u!1 &337728433
 GameObject:
   m_ObjectHideFlags: 0
@@ -1565,7 +1566,7 @@ PrefabInstance:
     - target: {fileID: 3946164627144431136, guid: 5f2778ce57c60294d8a54634d8455f0e,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.87
+      value: -5.66
       objectReference: {fileID: 0}
     - target: {fileID: 3946164627144431136, guid: 5f2778ce57c60294d8a54634d8455f0e,
         type: 3}
@@ -1575,7 +1576,7 @@ PrefabInstance:
     - target: {fileID: 3946164627144431136, guid: 5f2778ce57c60294d8a54634d8455f0e,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -61.88
+      value: -65.47
       objectReference: {fileID: 0}
     - target: {fileID: 3946164627144431136, guid: 5f2778ce57c60294d8a54634d8455f0e,
         type: 3}
@@ -1625,7 +1626,7 @@ PrefabInstance:
     - target: {fileID: 7368943660229865142, guid: 5f2778ce57c60294d8a54634d8455f0e,
         type: 3}
       propertyPath: Health
-      value: 1000
+      value: 500
       objectReference: {fileID: 0}
     - target: {fileID: 7368943660229865142, guid: 5f2778ce57c60294d8a54634d8455f0e,
         type: 3}

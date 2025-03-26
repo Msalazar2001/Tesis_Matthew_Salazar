@@ -30,6 +30,8 @@ public class Bus : MonoBehaviour
         if(parada.ultimaParada)
         {
             EnviarTotalPasajeros();
+            GameManager.Instance.CalcularValores();
+            GameManager.Instance.DetenerCronometro();
         }
     }
 
@@ -78,7 +80,7 @@ public class Bus : MonoBehaviour
 
     public void EnviarTotalPasajeros()
     {
-        GameManager.Instance.DetenerCronometro();
+        
         GameManager.Instance.RecibirPasajerosRecogidos(totalPasajerosRecogidos);
         print("Total Pasajeros Recogidos" + totalPasajerosRecogidos);
     }

@@ -27,4 +27,5 @@ public class Posicion : MonoBehaviour
     {
 
     }
+    
 }
