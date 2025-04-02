@@ -115,13 +115,13 @@ public class GameManager : MonoBehaviour
     public float CalcularValores()
     {
         float resultadoFinal = 0;
-        resultadoFinal = dineroFinal-danoTotal-descuento;
+        resultadoFinal = dineroGanado-descuento-danoTotal;
 
         print("----- RESUMEN FINAL -----");
         print("Pasajeros recogidos: " + totalPasajerosRecogidos);
-        print("Dinero base ganado: $" + dineroGanado);
-        print("Descuento por tiempo: $" + descuento);
-        print("Daño total acumulado: $" + danoTotal);
+        print("Dinero base ganado: " + dineroGanado);
+        print("Descuento por tiempo: " + descuento);
+        print("Daño total acumulado: " + danoTotal);
         print("Resultado final: $" + resultadoFinal);
 
         return resultadoFinal;
