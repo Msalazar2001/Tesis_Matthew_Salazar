@@ -21,6 +21,9 @@ public class GameManager : MonoBehaviour
     float danoTotal=0;
 
     float descuento = 0;
+
+    [SerializeField]
+    float descuentoDano = 0;
     private void Awake()
     {
         Instance = this;
@@ -109,19 +112,20 @@ public class GameManager : MonoBehaviour
        
         danoTotal += t;
         print(t);
+        descuentoDano = danoTotal / 100;
         //dineroFinal = dineroGanado - danoTotal;
     }
 
     public float CalcularValores()
     {
         float resultadoFinal = 0;
-        resultadoFinal = dineroGanado-descuento-danoTotal;
+        resultadoFinal = dineroGanado-descuento-descuentoDano;
 
         print("----- RESUMEN FINAL -----");
         print("Pasajeros recogidos: " + totalPasajerosRecogidos);
         print("Dinero base ganado: " + dineroGanado);
         print("Descuento por tiempo: " + descuento);
-        print("Daño total acumulado: " + danoTotal);
+        print("Daño total acumulado: " + descuentoDano);
         print("Resultado final: $" + resultadoFinal);
 
         return resultadoFinal;
