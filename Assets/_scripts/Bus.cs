@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BNG;
 using UnityEngine;
 
@@ -8,6 +9,12 @@ public class Bus : MonoBehaviour
 
     [SerializeField]
     VehicleController vehicleController;
+
+    [SerializeField]
+    Transform puntoEntradaPasajeros; // asignar desde el bus
+    [SerializeField]
+    List<Pasajero> pasajerosEnParada; 
+
 
     Parada parada;
 
@@ -55,6 +62,12 @@ public class Bus : MonoBehaviour
         {
             CancelInvoke("SubirPasajeros");
         }
+        foreach (Pasajero pasajero in pasajerosEnParada)
+        {
+            pasajero.IrHaciaElBus(puntoEntradaPasajeros.position);
+        }
+
+        pasajerosEnParada.Clear(); 
     }
 
     public void BajarPasajeros()
