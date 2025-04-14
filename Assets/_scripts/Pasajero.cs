@@ -4,7 +4,8 @@ using UnityEngine.AI;
 public class Pasajero : MonoBehaviour
 {
     NavMeshAgent agente;
-
+    [SerializeField]
+    Transform destino;
     void Awake()
     {
         agente = GetComponent<NavMeshAgent>();
@@ -14,5 +15,11 @@ public class Pasajero : MonoBehaviour
     {
         agente.SetDestination(puntoEntrada);
     }
+
+    private void Update()
+    {
+        agente.SetDestination(destino.position);
+    }
+
 }
 
