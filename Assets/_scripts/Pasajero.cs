@@ -1,25 +1,56 @@
-using UnityEngine;
-using UnityEngine.AI;
+﻿using UnityEngine;
+using System.Collections.Generic;
 
 public class Pasajero : MonoBehaviour
 {
-    NavMeshAgent agente;
-    [SerializeField]
-    Transform destino;
-    void Awake()
+    float velocidad = 3f;
+    Queue<Transform> ruta = new Queue<Transform>();
+    Transform objetivoActual;
+    bool enMovimiento = false;
+    public Parada paradaOrigen;
+
+
+    // Llama esta función desde el bus con: pasajero.AsignarRutaConEntrada(waypoints, columna, asiento);
+    public void AsignarRutaConEntrada(Transform[] waypointsEntrada, Transform columna, Transform asiento)
     {
-        agente = GetComponent<NavMeshAgent>();
+        ruta.Clear();
+
+        // Añadir los 3 waypoints de entrada al bus
+        foreach (Transform punto in waypointsEntrada)
+        {
+            ruta.Enqueue(punto);
+        }
+
+        // Luego, ir al transform de la columna
+        ruta.Enqueue(columna);
+
+        // Y por último, al asiento final
+        ruta.Enqueue(asiento);
+
+        if (ruta.Count > 0)
+        {
+            objetivoActual = ruta.Dequeue();
+            enMovimiento = true;
+        }
     }
 
-    public void IrHaciaElBus(Vector3 puntoEntrada)
+    void Update()
     {
-        agente.SetDestination(puntoEntrada);
-    }
+        if (!enMovimiento || objetivoActual == null) return;
 
-    private void Update()
-    {
-        agente.SetDestination(destino.position);
-    }
+        transform.position = Vector3.MoveTowards(transform.position, objetivoActual.position, velocidad * Time.deltaTime);
 
+        if (Vector3.Distance(transform.position, objetivoActual.position) < 0.1f)
+        {
+            if (ruta.Count > 0)
+            {
+                objetivoActual = ruta.Dequeue();
+            }
+            else
+            {
+                enMovimiento = false;
+                transform.SetParent(objetivoActual); // opcional: se "adhiere" al asiento
+            }
+        }
+    }
 }
-

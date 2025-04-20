@@ -1,20 +1,16 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using BNG;
 using UnityEngine;
 
 public class Bus : MonoBehaviour
 {
-    [SerializeField]
-    int espacioDisponible = 3;
+    [SerializeField] int espacioDisponible = 3;
+    [SerializeField] VehicleController vehicleController;
 
-    [SerializeField]
-    VehicleController vehicleController;
-
-    [SerializeField]
-    Transform puntoEntradaPasajeros; // asignar desde el bus
-    [SerializeField]
-    List<Pasajero> pasajerosEnParada; 
-
+    [SerializeField] Transform puntoEntradaPasajeros; // entrada general al bus
+    [SerializeField] Transform[] waypointsEntradaBus;
+    [SerializeField] Transform[] columnas;               // 3 columnas visuales
+    [SerializeField] Transform[] asientos;               // 12 asientos en orden
 
     Parada parada;
 
@@ -23,18 +19,19 @@ public class Bus : MonoBehaviour
     public int pasajerosActuales = 0;
     public int pasajerosBajando = 0;
     public int totalPasajerosRecogidos = 0;
+    int indexAsiento = 0;
+
     public void ParadaDetectada(Parada parada)
     {
         this.parada = parada;
 
-        // Elegir cuántos pasajeros se van a bajar en esta parada
         pasajerosBajando = Random.Range(0, pasajerosActuales + 1);
         print("Se van a bajar " + pasajerosBajando + " pasajeros.");
 
-        InvokeRepeating("BajarPasajeros", 1, 2); // bajar de a uno
-        InvokeRepeating("SubirPasajeros", 1, 2); // subir de a uno
+        InvokeRepeating("BajarPasajeros", 1, 2);
+        InvokeRepeating("SubirPasajeros", 1, 2);
 
-        if(parada.ultimaParada)
+        if (parada.ultimaParada)
         {
             EnviarTotalPasajeros();
             GameManager.Instance.CalcularValores();
@@ -49,25 +46,35 @@ public class Bus : MonoBehaviour
 
     public void SubirPasajeros()
     {
-        if (parada.cantidadPasajeros > 0 && espacioDisponible > 0)
+        List<Pasajero> pasajeros = parada.pasajerosEnParada;
+
+        int cantidadASubir = Mathf.Min(pasajeros.Count, espacioDisponible);
+
+        for (int i = 0; i < cantidadASubir && indexAsiento < asientos.Length; i++)
         {
-            parada.cantidadPasajeros--;
-            espacioDisponible--;
+            Pasajero pasajero = pasajeros[i];
+
+            int columna = indexAsiento / 4;
+            Transform puntoColumna = columnas[columna];
+            Transform asientoDestino = asientos[indexAsiento];
+
+            pasajero.AsignarRutaConEntrada(waypointsEntradaBus, puntoColumna, asientoDestino);
+
+            print($"Pasajero {indexAsiento} â†’ COLUMNA {columna + 1}, ASIENTO {indexAsiento + 1}");
+
+            indexAsiento++;
             pasajerosActuales++;
+            espacioDisponible--;
             totalPasajerosRecogidos++;
-            print("Subió un pasajero. Total pasajeros: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
+            parada.cantidadPasajeros--;
         }
+
+        parada.pasajerosEnParada.RemoveRange(0, cantidadASubir);
 
         if (parada.cantidadPasajeros == 0 || espacioDisponible == 0)
         {
             CancelInvoke("SubirPasajeros");
         }
-        foreach (Pasajero pasajero in pasajerosEnParada)
-        {
-            pasajero.IrHaciaElBus(puntoEntradaPasajeros.position);
-        }
-
-        pasajerosEnParada.Clear(); 
     }
 
     public void BajarPasajeros()
@@ -77,7 +84,7 @@ public class Bus : MonoBehaviour
             pasajerosActuales--;
             espacioDisponible++;
             pasajerosBajando--;
-            print("Bajó un pasajero. Quedan: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
+            print("BajÃ³ un pasajero. Quedan: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
         }
 
         if (pasajerosBajando == 0)
@@ -93,8 +100,7 @@ public class Bus : MonoBehaviour
 
     public void EnviarTotalPasajeros()
     {
-        
         GameManager.Instance.RecibirPasajerosRecogidos(totalPasajerosRecogidos);
-        print("Total Pasajeros Recogidos" + totalPasajerosRecogidos);
+        print("Total Pasajeros Recogidos: " + totalPasajerosRecogidos);
     }
 }
