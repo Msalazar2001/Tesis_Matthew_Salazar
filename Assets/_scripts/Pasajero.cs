@@ -34,6 +34,23 @@ public class Pasajero : MonoBehaviour
         }
     }
 
+
+    public void AsignarRutaDeSalida(Transform[] waypointsSalida)
+    {
+        ruta = new Queue<Transform>();
+
+        foreach (Transform punto in waypointsSalida)
+        {
+            ruta.Enqueue(punto);
+        }
+
+        if (ruta.Count > 0)
+        {
+            objetivoActual = ruta.Dequeue();
+            enMovimiento = true;
+        }
+    }
+
     void Update()
     {
         if (!enMovimiento || objetivoActual == null) return;
