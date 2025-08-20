@@ -178,6 +178,7 @@ MonoBehaviour:
   - {fileID: 6045576583780999601}
   - {fileID: -2199450283065669466}
   m_renderMode: 1
+  m_latencyOptimization: 0
   m_autoColorSubmissionMode: 1
   m_colorSubmissionModes:
     m_List: 00000000
@@ -321,6 +322,7 @@ MonoBehaviour:
   - {fileID: -8644069026593400603}
   - {fileID: -2450304055066679065}
   m_renderMode: 1
+  m_latencyOptimization: 0
   m_autoColorSubmissionMode: 1
   m_colorSubmissionModes:
     m_List: 00000000
