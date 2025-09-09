@@ -3,53 +3,62 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace BNG {
-    public class VehicleController : MonoBehaviour {
+namespace BNG
+{
+    public class VehicleController : MonoBehaviour
+    {
 
         [Header("Engine Properties")]
+        [Tooltip("Torque base que se multiplica por MotorInput (0..1)")]
         public float MotorTorque = 500f;
+
+        [Tooltip("Velocidad máxima en km/h")]
         public float MaxSpeed = 30f;
 
+        [Tooltip("Ángulo máximo de giro en grados")]
         public float MaxSteeringAngle = 45f;
 
         [Header("Steering Grabbable")]
-        [Tooltip("If true and SteeringGrabbable is being held, the right / left trigger will act as input for acceleration / defceleration.")]
+        [Tooltip("Si es true y SteeringGrabbable está siendo sujetado, los gatillos actúan como acelerador/freno.")]
         public bool CheckTriggerInput = true;
         public Grabbable SteeringGrabbable;
 
         [Header("Engine Status")]
-        [Tooltip("Is the Engine on and ready for input. If false, engine will need to be started first.")]
+        [Tooltip("Si el motor está listo para recibir entrada. Si es false, se debe 'Crankear' el motor.")]
         public bool EngineOn = false;
-        
 
-        [Tooltip("How long it takes to start the engine")]
+        [Tooltip("Tiempo que toma arrancar el motor")]
         public float CrankTime = 0.1f;
 
         [Header("Speedometer")]
-        [Tooltip("Output the current speed to this label if specified")]
+        [Tooltip("Texto opcional para mostrar la velocidad actual en km/h")]
         public Text SpeedLabel;
 
         [Header("Audio Setup")]
         public AudioSource EngineAudio;
 
-        [Tooltip("Sound to play / loop when EngineOn = true. Pitch will be altered according to speed.")]
+        [Tooltip("Sonido en loop cuando el motor está en marcha. El pitch se altera con la velocidad.")]
         public AudioClip IdleSound;
 
-        [Tooltip("If specified this clip will play before the engine is turned on. Clip to play when starting the Engine.")]
+        [Tooltip("Sonido al dar start al motor antes de quedar en marcha.")]
         public AudioClip CrankSound;
 
+        [Tooltip("Sonido de colisión")]
         public AudioClip CollisionSound;
-
-        [HideInInspector]
-        public float SteeringAngle = 0;
-        [HideInInspector]
-        public float MotorInput = 0; // Between 0-1. Multiplied times MotorTorque
-        [HideInInspector]
-        public float CurrentSpeed;
-
 
         [Header("Wheel Configuration")]
         public List<WheelObject> Wheels;
+
+        [Header("Speed Limit Options")]
+        [Tooltip("Si es true, además de cortar torque, fija la velocity para no pasar MaxSpeed (tope duro).")]
+        public bool HardCapSpeed = false;
+
+        [Tooltip("Freno suave al llegar a MaxSpeed (para estabilizar).")]
+        public float SoftBrakeAtMax = 50f;
+
+        [HideInInspector] public float SteeringAngle = 0f;
+        [HideInInspector] public float MotorInput = 1f; // Entre -1 y 1 (se clampa). Multiplicado por MotorTorque
+        [HideInInspector] public float CurrentSpeed = 0f; // km/h
 
         Vector3 initialPosition;
         Rigidbody rb;
@@ -58,57 +67,72 @@ namespace BNG {
 
         public Transform DriverSeatTransform;
 
-        void Start() {
+        protected bool crankingEngine = false;
+
+        void Start()
+        {
             rb = GetComponent<Rigidbody>();
             initialPosition = transform.position;
+
+            // Asegurar AudioSource
+            if (EngineAudio != null)
+            {
+                EngineAudio.loop = true;
+            }
         }
 
-        // Update is called once per frame
-        void Update() {
-
+        void Update()
+        {
+            // ¿Se está sujetando el volante?
             isHoldingSteering = SteeringGrabbable != null && SteeringGrabbable.BeingHeld;
 
-            if (CheckTriggerInput) {
+            // Lectura de gatillos para aceleración / frenado si corresponde
+            if (CheckTriggerInput)
+            {
                 GetTorqueInputFromTriggers();
             }
 
-            // Check if we need to crank the engine
-            if(Mathf.Abs(MotorInput) > 0.01f && !EngineOn) {
+            // Si hay input de motor y el motor aún no está encendido, arráncalo
+            if (Mathf.Abs(MotorInput) > 0.01f && !EngineOn)
+            {
                 CrankEngine();
             }
 
-            // Need to let engine finish cranking
-            if (crankingEngine) {
+            // Esperar a que termine el crank
+            if (crankingEngine)
+            {
+                wasHoldingSteering = isHoldingSteering;
                 return;
             }
 
             UpdateEngineAudio();
 
-            if (SpeedLabel != null) {
+            // Mostrar velocidad en etiqueta si existe
+            if (SpeedLabel != null)
+            {
                 SpeedLabel.text = CurrentSpeed.ToString("n0");
             }
 
             CheckOutOfBounds();
-
             wasHoldingSteering = isHoldingSteering;
         }
 
-        // Starts the motor if it isn't already on
-        public virtual void CrankEngine() {
-
-            if (crankingEngine || EngineOn) {
+        // Arranca el motor si no está ya encendido
+        public virtual void CrankEngine()
+        {
+            if (crankingEngine || EngineOn)
+            {
                 return;
             }
-
             StartCoroutine(crankEngine());
         }
 
-        protected bool crankingEngine = false;
-
-        IEnumerator crankEngine() {
+        IEnumerator crankEngine()
+        {
             crankingEngine = true;
 
-            if(CrankSound != null) {
+            if (CrankSound != null && EngineAudio != null)
+            {
                 EngineAudio.clip = CrankSound;
                 EngineAudio.loop = false;
                 EngineAudio.Play();
@@ -116,8 +140,9 @@ namespace BNG {
 
             yield return new WaitForSeconds(CrankTime);
 
-            // Switch to idle sound
-            if(IdleSound != null) {
+            // Cambiar a sonido en marcha
+            if (IdleSound != null && EngineAudio != null)
+            {
                 EngineAudio.clip = IdleSound;
                 EngineAudio.loop = true;
                 EngineAudio.Play();
@@ -129,88 +154,157 @@ namespace BNG {
             EngineOn = true;
         }
 
-        // Did we fall under the world?
-        public virtual void CheckOutOfBounds() {
-            if(transform.position.y < -500f) {
+        // ¿Cayó fuera del mundo?
+        public virtual void CheckOutOfBounds()
+        {
+            if (transform.position.y < -500f)
+            {
                 transform.position = initialPosition;
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
             }
         }
 
-        public virtual void GetTorqueInputFromTriggers() {
-            // Right Trigger Accelerate, Left Trigger Brake
-            if(isHoldingSteering) {
+        public virtual void GetTorqueInputFromTriggers()
+        {
+            // Gatillo derecho acelera, izquierdo frena
+            if (isHoldingSteering)
+            {
                 SetMotorTorqueInput(InputBridge.Instance.RightTrigger - InputBridge.Instance.LeftTrigger);
             }
-            // Nothing Holding the steering wheel. Set torque to 0
-            else if(wasHoldingSteering && !isHoldingSteering) {
-                SetMotorTorqueInput(0);
+            // Si sueltas el volante, corta el input
+            else if (wasHoldingSteering && !isHoldingSteering)
+            {
+                SetMotorTorqueInput(0f);
             }
         }
-        
-        void FixedUpdate() {
 
-            // Update speedometer
+        void FixedUpdate()
+        {
+            // Velocidad en km/h (velocity es en m/s)
             CurrentSpeed = correctValue(rb.linearVelocity.magnitude * 3.6f);
-
             UpdateWheelTorque();
         }
 
-        public virtual void UpdateWheelTorque() {
-            float torqueInput = EngineOn ? MotorInput : 0;
+        public virtual void UpdateWheelTorque()
+        {
+            // Entrada de torque solo si el motor está encendido
+            float torqueInput = EngineOn ? Mathf.Clamp(MotorInput, -1f, 1f) : 0f;
 
-            // Add torque / rotate wheels
-            for (int x = 0; x < Wheels.Count; x++) {
+            // Convertir MaxSpeed a m/s
+            float maxSpeedMS = Mathf.Max(0.1f, MaxSpeed / 3.6f);
+            float currentSpeedMS = rb.linearVelocity.magnitude;
+
+            bool pushingForward = torqueInput > 0.001f;
+            bool pushingBackward = torqueInput < -0.001f;
+
+            // Límite “físico”: al llegar a MaxSpeed hacia delante, deja de empujar
+            if (pushingForward && currentSpeedMS >= maxSpeedMS)
+            {
+                torqueInput = 0f;
+
+                // Freno suave para estabilizar (opcional)
+                foreach (var w in Wheels)
+                {
+                    if (w != null && w.ApplyTorque && w.Wheel != null)
+                    {
+                        w.Wheel.brakeTorque = Mathf.Max(0f, SoftBrakeAtMax);
+                    }
+                }
+            }
+            else
+            {
+                // Quitar freno suave si no estamos limitando
+                foreach (var w in Wheels)
+                {
+                    if (w != null && w.ApplyTorque && w.Wheel != null)
+                    {
+                        w.Wheel.brakeTorque = 0f;
+                    }
+                }
+            }
+
+            // Aplicar dirección y torque a las ruedas
+            for (int x = 0; x < Wheels.Count; x++)
+            {
                 WheelObject wheel = Wheels[x];
+                if (wheel == null || wheel.Wheel == null)
+                {
+                    continue;
+                }
 
-                // Steering
-                if (wheel.ApplySteering) {
-                    wheel.Wheel.steerAngle = MaxSteeringAngle * SteeringAngle;
+                // Dirección
+                if (wheel.ApplySteering)
+                {
+                    wheel.Wheel.steerAngle = Mathf.Clamp(MaxSteeringAngle * SteeringAngle, -MaxSteeringAngle, MaxSteeringAngle);
                 }
 
                 // Torque
-                if (wheel.ApplyTorque) {
+                if (wheel.ApplyTorque)
+                {
                     wheel.Wheel.motorTorque = MotorTorque * torqueInput;
                 }
 
                 UpdateWheelVisuals(wheel);
             }
+
+            // Límite “duro” (cap directo a la velocidad): opcional
+            if (HardCapSpeed && currentSpeedMS > maxSpeedMS && (pushingForward || MotorInput >= 0f))
+            {
+                Vector3 flatVel = rb.linearVelocity;
+                if (flatVel.sqrMagnitude > 0.0001f)
+                {
+                    rb.linearVelocity = flatVel.normalized * maxSpeedMS;
+                }
+            }
         }
 
-        public virtual void SetSteeringAngle(float steeringAngle) {
-            SteeringAngle = steeringAngle;
+        // Setters de dirección / motor
+        public virtual void SetSteeringAngle(float steeringAngle)
+        {
+            SteeringAngle = Mathf.Clamp(steeringAngle, -1f, 1f);
         }
 
-        public virtual void SetSteeringAngleInverted(float steeringAngle) {
-            SteeringAngle = steeringAngle * -1;
+        public virtual void SetSteeringAngleInverted(float steeringAngle)
+        {
+            SteeringAngle = Mathf.Clamp(steeringAngle * -1f, -1f, 1f);
         }
 
-        public virtual void SetSteeringAngle(Vector2 steeringAngle) {
-            SteeringAngle = steeringAngle.x;
+        public virtual void SetSteeringAngle(Vector2 steeringAngle)
+        {
+            SteeringAngle = Mathf.Clamp(steeringAngle.x, -1f, 1f);
         }
 
-        public virtual void SetSteeringAngleInverted(Vector2 steeringAngle) {
-            SteeringAngle = -steeringAngle.x;
+        public virtual void SetSteeringAngleInverted(Vector2 steeringAngle)
+        {
+            SteeringAngle = Mathf.Clamp(-steeringAngle.x, -1f, 1f);
         }
 
-        public virtual void SetMotorTorqueInput(float input) {
-            MotorInput = input;
+        public virtual void SetMotorTorqueInput(float input)
+        {
+            MotorInput = Mathf.Clamp(input, -1f, 1f);
         }
 
-        public virtual void SetMotorTorqueInputInverted(float input) {
-            MotorInput = -input;
+        public virtual void SetMotorTorqueInputInverted(float input)
+        {
+            MotorInput = Mathf.Clamp(-input, -1f, 1f);
         }
 
-        public virtual void SetMotorTorqueInput(Vector2 input) {
-            MotorInput = input.y;
+        public virtual void SetMotorTorqueInput(Vector2 input)
+        {
+            MotorInput = Mathf.Clamp(input.y, -1f, 1f);
         }
 
-        public virtual void SetMotorTorqueInputInverted(Vector2 input) {
-            MotorInput = -input.y;
+        public virtual void SetMotorTorqueInputInverted(Vector2 input)
+        {
+            MotorInput = Mathf.Clamp(-input.y, -1f, 1f);
         }
 
-        public virtual void UpdateWheelVisuals(WheelObject wheel) {
-            // Update Wheel position / rotation based on WheelColliders World Pose
-            if(wheel != null && wheel.WheelVisual != null) {
+        public virtual void UpdateWheelVisuals(WheelObject wheel)
+        {
+            // Actualiza posición / rotación del mesh según el WheelCollider
+            if (wheel != null && wheel.WheelVisual != null && wheel.Wheel != null)
+            {
                 Vector3 position;
                 Quaternion rotation;
                 wheel.Wheel.GetWorldPose(out position, out rotation);
@@ -220,30 +314,36 @@ namespace BNG {
             }
         }
 
-        public virtual void UpdateEngineAudio() {
-            if (EngineAudio && EngineOn) {
-                EngineAudio.pitch = Mathf.Clamp(0.5f + (CurrentSpeed / MaxSpeed), -0.1f, 3f);
+        public virtual void UpdateEngineAudio()
+        {
+            if (EngineAudio && EngineOn)
+            {
+                // Pitch relativo a la velocidad (0.5 en reposo, sube hasta 3)
+                EngineAudio.pitch = Mathf.Clamp(0.5f + (CurrentSpeed / Mathf.Max(1f, MaxSpeed)), -0.1f, 3f);
             }
         }
 
-        void OnCollisionEnter(Collision collision) {
+        void OnCollisionEnter(Collision collision)
+        {
             float colVelocity = collision.relativeVelocity.magnitude;
-            if(colVelocity > 0.1f) {
+            if (CollisionSound != null && colVelocity > 0.1f)
+            {
                 VRUtils.Instance.PlaySpatialClipAt(CollisionSound, collision.GetContact(0).point, 1f);
             }
         }
 
-        float correctValue(float inputValue) {
+        float correctValue(float inputValue)
+        {
             return (float)System.Math.Round(inputValue * 1000f) / 1000f;
         }
     }
 
     [System.Serializable]
-    public class WheelObject {
+    public class WheelObject
+    {
         public WheelCollider Wheel;
         public Transform WheelVisual;
         public bool ApplyTorque;
         public bool ApplySteering;
     }
 }
-

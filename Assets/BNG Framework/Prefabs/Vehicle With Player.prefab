@@ -852,9 +852,6 @@ MonoBehaviour:
   IdleSound: {fileID: 8300000, guid: 9c9ad49c9ea59fe48a25237995617419, type: 3}
   CrankSound: {fileID: 8300000, guid: 29164d686358d9540be161a7b3df01d0, type: 3}
   CollisionSound: {fileID: 8300000, guid: d7aef00ca89522f4ab3de348747d62d0, type: 3}
-  SteeringAngle: 0
-  MotorInput: 0
-  CurrentSpeed: 0
   Wheels:
   - Wheel: {fileID: 1467347147287241100}
     WheelVisual: {fileID: 1467347147331068547}
@@ -872,6 +869,11 @@ MonoBehaviour:
     WheelVisual: {fileID: 462744560459276428}
     ApplyTorque: 0
     ApplySteering: 0
+  HardCapSpeed: 0
+  SoftBrakeAtMax: 50
+  SteeringAngle: 0
+  MotorInput: 0
+  CurrentSpeed: 0
   DriverSeatTransform: {fileID: 0}
 --- !u!114 &1467347146218415339
 MonoBehaviour:
@@ -919,7 +921,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 621e7d180a1c9ce4089315790a1ff4ca, type: 3}
+  m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 621e7d180a1c9ce4089315790a1ff4ca, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 0.2
