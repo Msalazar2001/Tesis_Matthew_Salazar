@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 5c41c66609154b459247716193322d2b
+timeCreated: 1666520890
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared/Tools/PGInspector/Modules/ExecuteModules/PGExecuteOnBecameInvisible.cs
+  uploadId: 786888

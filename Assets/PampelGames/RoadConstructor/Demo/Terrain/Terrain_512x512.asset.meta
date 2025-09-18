@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c8e602a5e2ebf6e4e8378538d0bd80cf
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 15600000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Demo/Terrain/Terrain_512x512.asset
+  uploadId: 786888

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d33751d786aac36499856fbcad349ba4
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Demo/Scriptables/RoadConstructorDemoTerrain.asset
+  uploadId: 786888

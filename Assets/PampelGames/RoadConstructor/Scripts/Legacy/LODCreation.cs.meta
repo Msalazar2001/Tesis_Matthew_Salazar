@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: a4a42efb6de8d0748b3727042e97dc27
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/Legacy/LODCreation.cs
+  uploadId: 786888

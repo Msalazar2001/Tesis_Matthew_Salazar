@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 0996f1985cc60c1448cd5e756c71b29a
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 13804, guid: 0000000000000000e000000000000000, type: 0}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Demo/UI/DemoMenuUXML.uxml
+  uploadId: 786888

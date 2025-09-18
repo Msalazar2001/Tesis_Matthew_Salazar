@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 4b3eaaf512fdca247a7cc7d3d73b6262
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/Legacy/TangentCalculation.cs
+  uploadId: 786888

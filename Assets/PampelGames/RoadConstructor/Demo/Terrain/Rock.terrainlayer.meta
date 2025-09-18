@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0e59be5c8a0fc684ca9ac1dcb9bc2e00
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 8574412962073106934
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Demo/Terrain/Rock.terrainlayer
+  uploadId: 786888

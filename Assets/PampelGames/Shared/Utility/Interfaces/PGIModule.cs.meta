@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 99b29ece63af69847811e537210d0148
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared/Utility/Interfaces/PGIModule.cs
+  uploadId: 786888

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d3a198c9ed302624f9683ceff063ff34
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 8574412962073106934
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Demo/Terrain/Grass.terrainlayer
+  uploadId: 786888

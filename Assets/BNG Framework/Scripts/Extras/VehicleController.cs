@@ -56,9 +56,56 @@ namespace BNG
         [Tooltip("Freno suave al llegar a MaxSpeed (para estabilizar).")]
         public float SoftBrakeAtMax = 50f;
 
-        [HideInInspector] public float SteeringAngle = 0f;
-        [HideInInspector] public float MotorInput = 1f; // Entre -1 y 1 (se clampa). Multiplicado por MotorTorque
-        [HideInInspector] public float CurrentSpeed = 0f; // km/h
+        // ---------- FRENADO AL SOLTAR / BAJA VELOCIDAD ----------
+        [Header("Coast / Low-Speed Braking")]
+        [Tooltip("Freno aplicado cuando sueltas el acelerador (simula freno motor).")]
+        public float CoastBrakeTorque = 1200f;
+
+        [Tooltip("Zona muerta del acelerador para considerar que 'soltaste' (0..0.2)")]
+        [Range(0f, 0.2f)]
+        public float CoastDeadZone = 0.05f;
+
+        [Tooltip("Debajo de esta velocidad (km/h) el frenado al soltar se multiplica.")]
+        public float ExtraBrakeBelowSpeedKmh = 12f;
+
+        [Tooltip("Multiplicador del freno al soltar por debajo del umbral de baja velocidad.")]
+        public float ExtraBrakeMultiplier = 1.8f;
+
+        [Tooltip("Por debajo de esta velocidad (km/h), si no hay aceleración, se fuerza a 0 para evitar rodar.")]
+        public float StopSnapSpeedKmh = 0.6f;
+
+        [Tooltip("Par de freno máximo para sujetar al parar (ruedas motrices).")]
+        public float MaxHoldBrakeTorque = 4000f;
+        // --------------------------------------------------------
+
+        // ---------- Tuning de Volante ----------
+        [Header("Steering Tuning")]
+        [Tooltip("Multiplicador de sensibilidad del volante (0.3-1.0 recomendado)")]
+        [Range(0.1f, 2f)]
+        public float SteeringSensitivity = 0.7f;
+
+        [Tooltip("Zona muerta del volante (0..0.2)")]
+        [Range(0f, 0.2f)]
+        public float SteeringDeadZone = 0.06f;
+
+        [Tooltip("Curva exponencial: 0 lineal, 1 muy suave al centro y fuerte al final")]
+        [Range(0f, 1f)]
+        public float SteeringExpo = 0.45f;
+
+        [Tooltip("Máxima variación por segundo del input normalizado (-1..1)")]
+        public float SteeringMaxRate = 1.8f;
+
+        [Tooltip("Factor multiplicador de dirección a máxima velocidad (0.3-0.7)")]
+        [Range(0.1f, 1f)]
+        public float HighSpeedSteeringFactor = 0.4f;
+
+        // Estado interno suavizado del steering
+        float _steeringSmoothed = 0f;
+        // --------------------------------------
+
+        [HideInInspector] public float SteeringAngle = 0f; // -1..1 tras el pipeline de filtros
+        [HideInInspector] public float MotorInput = 0f;    // -1..1 (se clampa). Multiplicado por MotorTorque
+        [HideInInspector] public float CurrentSpeed = 0f;  // km/h
 
         Vector3 initialPosition;
         Rigidbody rb;
@@ -74,7 +121,6 @@ namespace BNG
             rb = GetComponent<Rigidbody>();
             initialPosition = transform.position;
 
-            // Asegurar AudioSource
             if (EngineAudio != null)
             {
                 EngineAudio.loop = true;
@@ -196,30 +242,51 @@ namespace BNG
             float currentSpeedMS = rb.linearVelocity.magnitude;
 
             bool pushingForward = torqueInput > 0.001f;
-            bool pushingBackward = torqueInput < -0.001f;
+            bool releasedThrottle = Mathf.Abs(MotorInput) <= CoastDeadZone;
 
-            // Límite “físico”: al llegar a MaxSpeed hacia delante, deja de empujar
+            // 1) Límite “físico”: al llegar a MaxSpeed hacia delante, deja de empujar y aplica freno suave
             if (pushingForward && currentSpeedMS >= maxSpeedMS)
             {
                 torqueInput = 0f;
 
-                // Freno suave para estabilizar (opcional)
                 foreach (var w in Wheels)
                 {
                     if (w != null && w.ApplyTorque && w.Wheel != null)
-                    {
                         w.Wheel.brakeTorque = Mathf.Max(0f, SoftBrakeAtMax);
-                    }
                 }
             }
             else
             {
-                // Quitar freno suave si no estamos limitando
-                foreach (var w in Wheels)
+                // 2) Freno motor al soltar
+                if (releasedThrottle && currentSpeedMS > 0.1f)
                 {
-                    if (w != null && w.ApplyTorque && w.Wheel != null)
+                    float extra = (CurrentSpeed <= ExtraBrakeBelowSpeedKmh) ? ExtraBrakeMultiplier : 1f;
+                    float coast = Mathf.Max(0f, CoastBrakeTorque * extra);
+
+                    foreach (var w in Wheels)
                     {
-                        w.Wheel.brakeTorque = 0f;
+                        if (w != null && w.ApplyTorque && w.Wheel != null)
+                            w.Wheel.brakeTorque = coast;
+                    }
+
+                    // 3) Remate de parada: si vas MUY lento y sin acelerar, fuerza 0 y sujeta con freno
+                    if (CurrentSpeed <= StopSnapSpeedKmh)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        foreach (var w in Wheels)
+                        {
+                            if (w != null && w.ApplyTorque && w.Wheel != null)
+                                w.Wheel.brakeTorque = Mathf.Max(MaxHoldBrakeTorque, CoastBrakeTorque);
+                        }
+                    }
+                }
+                else
+                {
+                    // 4) Sin limitación ni coast: liberar freno
+                    foreach (var w in Wheels)
+                    {
+                        if (w != null && w.ApplyTorque && w.Wheel != null)
+                            w.Wheel.brakeTorque = 0f;
                     }
                 }
             }
@@ -229,14 +296,13 @@ namespace BNG
             {
                 WheelObject wheel = Wheels[x];
                 if (wheel == null || wheel.Wheel == null)
-                {
                     continue;
-                }
 
-                // Dirección
+                // Dirección (usa el ángulo normalizado filtrado -1..1)
                 if (wheel.ApplySteering)
                 {
-                    wheel.Wheel.steerAngle = Mathf.Clamp(MaxSteeringAngle * SteeringAngle, -MaxSteeringAngle, MaxSteeringAngle);
+                    wheel.Wheel.steerAngle =
+                        Mathf.Clamp(MaxSteeringAngle * SteeringAngle, -MaxSteeringAngle, MaxSteeringAngle);
                 }
 
                 // Torque
@@ -259,50 +325,58 @@ namespace BNG
             }
         }
 
-        // Setters de dirección / motor
-        public virtual void SetSteeringAngle(float steeringAngle)
+        // ---------- PIPELINE DE STEERING ----------
+        void SetSteeringTarget(float raw)
         {
-            SteeringAngle = Mathf.Clamp(steeringAngle, -1f, 1f);
+            // 1) Clamp básico
+            float x = Mathf.Clamp(raw, -1f, 1f);
+
+            // 2) Deadzone con remapeo continuo
+            float dz = Mathf.Clamp01(SteeringDeadZone);
+            if (Mathf.Abs(x) <= dz)
+            {
+                x = 0f;
+            }
+            else
+            {
+                x = Mathf.Sign(x) * (Mathf.Abs(x) - dz) / (1f - dz);
+            }
+
+            // 3) Sensibilidad general
+            x *= SteeringSensitivity;
+            x = Mathf.Clamp(x, -1f, 1f);
+
+            // 4) Curva exponencial (mezcla lineal ↔ cúbica)
+            float a = Mathf.Abs(x);
+            float curved = Mathf.Lerp(a, a * a * a, Mathf.Clamp01(SteeringExpo));
+            x = Mathf.Sign(x) * curved;
+
+            // 5) Reducción según velocidad (menos giro a más velocidad)
+            float speed01 = Mathf.Clamp01(CurrentSpeed / Mathf.Max(1f, MaxSpeed));
+            float speedFactor = Mathf.Lerp(1f, HighSpeedSteeringFactor, speed01);
+            x *= speedFactor;
+
+            // 6) Límite de tasa + suavizado
+            _steeringSmoothed = Mathf.MoveTowards(_steeringSmoothed, x, SteeringMaxRate * Time.deltaTime);
+
+            // 7) Asignación final (normalizado -1..1)
+            SteeringAngle = _steeringSmoothed;
         }
 
-        public virtual void SetSteeringAngleInverted(float steeringAngle)
-        {
-            SteeringAngle = Mathf.Clamp(steeringAngle * -1f, -1f, 1f);
-        }
+        // Setters de dirección / motor (todos pasan por el pipeline)
+        public virtual void SetSteeringAngle(float steeringAngle) { SetSteeringTarget(steeringAngle); }
+        public virtual void SetSteeringAngleInverted(float steeringAngle) { SetSteeringTarget(-steeringAngle); }
+        public virtual void SetSteeringAngle(Vector2 steeringAngle) { SetSteeringTarget(steeringAngle.x); }
+        public virtual void SetSteeringAngleInverted(Vector2 steeringAngle) { SetSteeringTarget(-steeringAngle.x); }
 
-        public virtual void SetSteeringAngle(Vector2 steeringAngle)
-        {
-            SteeringAngle = Mathf.Clamp(steeringAngle.x, -1f, 1f);
-        }
-
-        public virtual void SetSteeringAngleInverted(Vector2 steeringAngle)
-        {
-            SteeringAngle = Mathf.Clamp(-steeringAngle.x, -1f, 1f);
-        }
-
-        public virtual void SetMotorTorqueInput(float input)
-        {
-            MotorInput = Mathf.Clamp(input, -1f, 1f);
-        }
-
-        public virtual void SetMotorTorqueInputInverted(float input)
-        {
-            MotorInput = Mathf.Clamp(-input, -1f, 1f);
-        }
-
-        public virtual void SetMotorTorqueInput(Vector2 input)
-        {
-            MotorInput = Mathf.Clamp(input.y, -1f, 1f);
-        }
-
-        public virtual void SetMotorTorqueInputInverted(Vector2 input)
-        {
-            MotorInput = Mathf.Clamp(-input.y, -1f, 1f);
-        }
+        // -------------------- MOTOR INPUT --------------------
+        public virtual void SetMotorTorqueInput(float input) { MotorInput = Mathf.Clamp(input, -1f, 1f); }
+        public virtual void SetMotorTorqueInputInverted(float input) { MotorInput = Mathf.Clamp(-input, -1f, 1f); }
+        public virtual void SetMotorTorqueInput(Vector2 input) { MotorInput = Mathf.Clamp(input.y, -1f, 1f); }
+        public virtual void SetMotorTorqueInputInverted(Vector2 input) { MotorInput = Mathf.Clamp(-input.y, -1f, 1f); }
 
         public virtual void UpdateWheelVisuals(WheelObject wheel)
         {
-            // Actualiza posición / rotación del mesh según el WheelCollider
             if (wheel != null && wheel.WheelVisual != null && wheel.Wheel != null)
             {
                 Vector3 position;
@@ -318,7 +392,6 @@ namespace BNG
         {
             if (EngineAudio && EngineOn)
             {
-                // Pitch relativo a la velocidad (0.5 en reposo, sube hasta 3)
                 EngineAudio.pitch = Mathf.Clamp(0.5f + (CurrentSpeed / Mathf.Max(1f, MaxSpeed)), -0.1f, 3f);
             }
         }

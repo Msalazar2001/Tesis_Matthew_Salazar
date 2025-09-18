@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 2f5a99fc060548843bf022f3061dc5b3
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared.Construction/Shaders/InvisibleShader.shader
+  uploadId: 786888

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cd99b0764ded8424983ef36330306ec0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Content/Roads/Materials/local_Asphalt_Side.mat
+  uploadId: 786888

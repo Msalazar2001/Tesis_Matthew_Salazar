@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b1add4cd32f881a41a50afabac45170d
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/Components/SceneObjects/SceneObject.cs
+  uploadId: 786888

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d83e0dccd59fd804f8488fd641ce85d0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/Scriptables/DefaultReferences.asset
+  uploadId: 786888

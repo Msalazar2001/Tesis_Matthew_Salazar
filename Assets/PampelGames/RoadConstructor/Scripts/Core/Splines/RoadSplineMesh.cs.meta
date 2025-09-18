@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: f6ac5198e010cb446a0888d2a77a30c2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/Core/Splines/RoadSplineMesh.cs
+  uploadId: 786888

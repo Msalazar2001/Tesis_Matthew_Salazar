@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 352912e3eba46f4428e744f0323a47e3
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Content/Objects/Prefabs/TrafficLight_Two.prefab
+  uploadId: 786888

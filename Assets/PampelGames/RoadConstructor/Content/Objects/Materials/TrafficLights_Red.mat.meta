@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f023b2781a9322b4f8cc269ada7309ea
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Content/Objects/Materials/TrafficLights_Red.mat
+  uploadId: 786888

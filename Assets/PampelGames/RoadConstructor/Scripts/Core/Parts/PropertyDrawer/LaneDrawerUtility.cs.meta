@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 1cea7d1f0de3b0847b51c97b3e5b7ace
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/Core/Parts/PropertyDrawer/LaneDrawerUtility.cs
+  uploadId: 786888

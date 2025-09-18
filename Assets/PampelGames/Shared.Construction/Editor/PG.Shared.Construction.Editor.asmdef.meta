@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 74c188742bda85b46b86539fe5fc429f
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared.Construction/Editor/PG.Shared.Construction.Editor.asmdef
+  uploadId: 786888

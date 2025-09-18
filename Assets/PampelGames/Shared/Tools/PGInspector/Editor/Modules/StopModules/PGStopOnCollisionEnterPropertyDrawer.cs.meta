@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: abd9051f80e56994db7d16e7955adb8a
+timeCreated: 1666513066
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared/Tools/PGInspector/Editor/Modules/StopModules/PGStopOnCollisionEnterPropertyDrawer.cs
+  uploadId: 786888

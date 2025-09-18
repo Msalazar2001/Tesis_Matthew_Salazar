@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 1aee044913f365b4ca91146cea7dc3dd
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared/Tools/PGTween/Editor/PGTweenEasingTypes.html
+  uploadId: 786888

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 3245aecec1efdb1489ba7b196f3b377a
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/RoadConstructor/Scripts/PG.RoadConstructor.asmdef
+  uploadId: 786888

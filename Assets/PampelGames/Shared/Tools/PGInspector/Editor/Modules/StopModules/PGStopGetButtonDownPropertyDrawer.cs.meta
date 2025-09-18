@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: fb24738e80694ec4baf243f964da63c5
+timeCreated: 1666521946
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287445
+  packageName: Road Constructor
+  packageVersion: 1.7.2
+  assetPath: Assets/PampelGames/Shared/Tools/PGInspector/Editor/Modules/StopModules/PGStopGetButtonDownPropertyDrawer.cs
+  uploadId: 786888
