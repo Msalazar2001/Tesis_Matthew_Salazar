@@ -42,6 +42,8 @@ public class Bus : MonoBehaviour
             EnviarTotalPasajeros();
             GameManager.Instance.CalcularValores();
             GameManager.Instance.DetenerCronometro();
+            Time.timeScale = 0f;
+            AudioListener.pause = true;
         }
     }
 
@@ -65,6 +67,7 @@ public class Bus : MonoBehaviour
         List<Pasajero> pasajeros = parada.pasajerosEnParada;
 
         int cantidadASubir = Mathf.Min(pasajeros.Count, espacioDisponible);
+        int boarded = 0; // <-- NUEVO: contador de abordados en esta tanda
 
         for (int i = 0; i < cantidadASubir; i++)
         {
@@ -78,6 +81,9 @@ public class Bus : MonoBehaviour
             Transform asientoDestino = asientos[asientoLibre];
 
             pasajero.AsignarRutaConEntrada(waypointsEntradaBus, puntoColumna, asientoDestino);
+            pasajero.ForzarCaminar();
+
+            pasajero.AdoptarDelBus(transform);
 
             asientosOcupados[asientoLibre] = true;
 
@@ -87,15 +93,27 @@ public class Bus : MonoBehaviour
             espacioDisponible--;
             totalPasajerosRecogidos++;
             parada.cantidadPasajeros--;
+            boarded++; // <-- NUEVO
         }
 
-        parada.pasajerosEnParada.RemoveRange(0, cantidadASubir);
+        // Avisar al GameManager cuántos subieron en esta pasada
+        if (boarded > 0)
+        {
+            GameManager.Instance?.PasajeroSubio(boarded); // <-- NUEVO
+        }
+
+        // Limpieza de la cola de la parada
+        if (cantidadASubir > 0)
+        {
+            parada.pasajerosEnParada.RemoveRange(0, cantidadASubir);
+        }
 
         if (parada.cantidadPasajeros == 0 || espacioDisponible == 0)
         {
             CancelInvoke("SubirPasajeros");
         }
     }
+
 
     public void BajarPasajeros()
     {
@@ -105,44 +123,60 @@ public class Bus : MonoBehaviour
 
             if (pasajero != null)
             {
-                pasajero.AsignarRutaDeSalida(waypointsSalidaBus);
-
+                // liberar asiento
                 for (int i = 0; i < asientos.Length; i++)
                 {
-                    if (pasajero.transform.parent == asientos[i])
+                    if (asientos[i] && pasajero.transform.IsChildOf(asientos[i]))
                     {
                         asientosOcupados[i] = false;
                         break;
                     }
                 }
 
+                // disparar bajada
+                Transform busRoot = transform;
+                Transform padreFuera = null; // o la Parada destino si quieres
+                pasajero.PrepararBajada(waypointsSalidaBus, busRoot, padreFuera);
+
+                // contadores como ya haces
                 pasajerosActuales--;
                 espacioDisponible++;
                 pasajerosBajando--;
 
                 print("Bajó un pasajero. Quedan: " + pasajerosActuales + ". Espacio disponible: " + espacioDisponible);
             }
+            else
+            {
+                Debug.LogWarning("[Bus] No encontré pasajero sentado para bajar (¿asientos[] correcto? ¿parenting al SeatAnchor dentro del asiento?)");
+            }
         }
 
         if (pasajerosBajando == 0)
-        {
             CancelInvoke("BajarPasajeros");
-        }
     }
+
 
     private Pasajero BuscarPasajeroEnBus()
     {
-        Pasajero[] pasajeros = FindObjectsByType<Pasajero>(FindObjectsSortMode.None);
+        Pasajero[] todos = FindObjectsByType<Pasajero>(FindObjectsSortMode.None);
 
-        foreach (Pasajero p in pasajeros)
+        foreach (var p in todos)
         {
-            if (p.transform.parent != null && p.transform.parent.name.Contains("Asiento"))
+            if (!p || !p.transform) continue;
+
+            // Debe ser hijo del BUS en cualquier profundidad
+            if (!p.transform.IsChildOf(transform)) continue;
+
+            // Si está sentado: su transform está dentro de alguno de los asientos[]
+            for (int i = 0; i < asientos.Length; i++)
             {
-                return p;
+                if (asientos[i] && p.transform.IsChildOf(asientos[i]))
+                    return p;
             }
         }
         return null;
     }
+
 
     public int PasajerosRecogidos()
     {

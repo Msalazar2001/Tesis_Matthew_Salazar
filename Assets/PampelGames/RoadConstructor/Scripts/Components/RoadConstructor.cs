@@ -26,6 +26,11 @@ namespace PampelGames.RoadConstructor
             componentSettings.groundLayers |= 1 << LayerMask.NameToLayer("Default");
         }
 
+        public List<TrafficLane> GetTrafficLanes()
+        {
+            throw new NotImplementedException();
+        }
+
         public SO_DefaultReferences _DefaultReferences;
         public RoadSet _RoadSet;
         public ComponentSettings componentSettings = new();

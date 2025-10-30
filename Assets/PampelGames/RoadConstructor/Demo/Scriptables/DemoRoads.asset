@@ -1896,7 +1896,7 @@ MonoBehaviour:
       heightRange: {x: 0, y: 10}
       removeOverlap: 0
       chance: 1
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Local_Six
     spawnObjectName: Elevation
     spawnObjects:
@@ -2125,7 +2125,7 @@ MonoBehaviour:
       removeOverlap: 0
       chance: 1
   trafficLanePresets:
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Rural
     trafficLanePresetName: 
     trafficLanes:
@@ -2135,7 +2135,7 @@ MonoBehaviour:
       direction: 0
       maxSpeed: 30
       mirror: 1
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Local_Two
     trafficLanePresetName: 
     trafficLanes:
@@ -2151,7 +2151,7 @@ MonoBehaviour:
       direction: 0
       maxSpeed: 50
       mirror: 1
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: OneWay
     trafficLanePresetName: 
     trafficLanes:
@@ -2173,7 +2173,7 @@ MonoBehaviour:
       direction: 0
       maxSpeed: 50
       mirror: 0
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Local_Four
     trafficLanePresetName: 
     trafficLanes:
@@ -2195,7 +2195,7 @@ MonoBehaviour:
       direction: 0
       maxSpeed: 50
       mirror: 1
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Local_Six
     trafficLanePresetName: 
     trafficLanes:
@@ -2223,7 +2223,7 @@ MonoBehaviour:
       direction: 0
       maxSpeed: 70
       mirror: 1
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Highway_Six
     trafficLanePresetName: 
     trafficLanes:
@@ -2245,7 +2245,7 @@ MonoBehaviour:
       direction: 0
       maxSpeed: 110
       mirror: 1
-  - _editorVisible: 0
+  - _editorVisible: 1
     category: Highway_Eight
     trafficLanePresetName: 
     trafficLanes:

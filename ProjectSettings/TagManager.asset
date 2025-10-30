@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Parada
   - Bus
+  - Car
   layers:
   - Default
   - TransparentFX
@@ -19,9 +20,9 @@ TagManager:
   - Player
   - Grabbable
   - Walkable
-  - 
-  - 
-  - 
+  - Mirror
+  - Bus
+  - Npc
   - 
   - 
   - 

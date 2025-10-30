@@ -76,7 +76,15 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    [SerializeField] float tarifaBase = 2.5f;
 
+ 
+    public void PasajeroSubio(int cantidad = 1)
+    {
+        if (cantidad <= 0) return;
+        totalPasajerosRecogidos += cantidad;
+        dineroGanado += cantidad * tarifaBase;
+    }
     public void RecibirPasajerosRecogidos(int cantidad)
     {
         totalPasajerosRecogidos = cantidad;
@@ -107,6 +115,46 @@ public class GameManager : MonoBehaviour
         return tiempoTotal;
     }
 
+    // Devuelve el tiempo restante (si es negativo, retorna 0)
+    public float ObtenerTiempoRestante()
+    {
+        return Mathf.Max(0f, tiempoPropuesto - tiempoTotal);
+    }
+
+    // Devuelve true si ya se pasó del tiempo propuesto
+    public bool EstaEnOvertime()
+    {
+        return tiempoTotal > tiempoPropuesto;
+    }
+
+    // Devuelve el tiempo restante en formato mm:ss
+    // Si allowNegative = true, cuando estés en overtime devuelve "+mm:ss"
+    public string TiempoRestanteStr(bool allowNegative = true)
+    {
+        float diff = tiempoPropuesto - tiempoTotal;
+
+        if (!allowNegative)
+        {
+            diff = Mathf.Max(0f, diff);
+        }
+
+        bool overtime = diff < 0f;
+        float t = Mathf.Abs(diff);
+
+        int m = Mathf.FloorToInt(t / 60f);
+        int s = Mathf.FloorToInt(t % 60f);
+
+        if (overtime && allowNegative)
+        {
+            return $"+{m:00}:{s:00}";
+        }
+        else
+        {
+            return $"{m:00}:{s:00}";
+        }
+    }
+
+
     public void HacerDano(float t)
     {
        
@@ -115,6 +163,9 @@ public class GameManager : MonoBehaviour
         descuentoDano = danoTotal / 100;
         //dineroFinal = dineroGanado - danoTotal;
     }
+
+    public float ObtenerDescuentoTiempo() { return descuento; }
+    public float ObtenerDescuentoDano() { return descuentoDano; }
 
     public float CalcularValores()
     {

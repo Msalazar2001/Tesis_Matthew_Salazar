@@ -41,6 +41,7 @@ namespace PampelGames.RoadConstructor
     {
         Car,
         Pedestrian,
+        Road,
     }
     public enum TrafficLaneDirection
     {

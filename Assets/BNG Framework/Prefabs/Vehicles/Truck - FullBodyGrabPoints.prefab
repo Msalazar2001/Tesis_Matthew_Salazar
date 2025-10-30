@@ -4338,6 +4338,17 @@ MonoBehaviour:
     ApplySteering: 0
   HardCapSpeed: 0
   SoftBrakeAtMax: 50
+  CoastBrakeTorque: 1200
+  CoastDeadZone: 0.05
+  ExtraBrakeBelowSpeedKmh: 12
+  ExtraBrakeMultiplier: 1.8
+  StopSnapSpeedKmh: 0.6
+  MaxHoldBrakeTorque: 4000
+  SteeringSensitivity: 0.7
+  SteeringDeadZone: 0.06
+  SteeringExpo: 0.45
+  SteeringMaxRate: 1.8
+  HighSpeedSteeringFactor: 0.4
   SteeringAngle: 0
   MotorInput: 0
   CurrentSpeed: 0
