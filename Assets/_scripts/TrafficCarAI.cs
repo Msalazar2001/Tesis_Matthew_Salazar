@@ -4,26 +4,43 @@ using UnityEngine;
 public class TrafficCarAI : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float speed = 10f;            // velocidad de crucero (objetivo)
-    [SerializeField] private float turnSpeed = 6f;         // rapidez de giro
-    [SerializeField] private float reachRadius = 1.5f;     // radio para pasar al siguiente waypoint
-    [SerializeField] private bool loop = true;             // repetir recorrido
+    [SerializeField] private float speed = 10f;            // velocidad crucero
+    [SerializeField] private float turnSpeed = 6f;
+    [SerializeField] private float reachRadius = 1.5f;
+    [SerializeField] private bool loop = true;
 
-    [Header("BUS detection (follow logic)")]
-    [SerializeField] private string busTag = "Bus";        // tag exacto del bus
-    [SerializeField] private float lookAhead = 50f;        // distancia de detección delante
-    [SerializeField] private float castRadius = 0.7f;      // “ancho” del vehículo para el SphereCast
-    [SerializeField] private float minSpeedNearBus = 0f; // velocidad mínima cuando hay bus muy cerca
-    [SerializeField] private float accel = 4.5f;           // aceleración al subir a crucero
-    [SerializeField] private float brakeAccel = 7.5f;      // desaceleración al frenar por el bus
-    [SerializeField] private LayerMask busLayerMask = ~0;  // opcional: capa del bus; si no, usa Default
+    [Header("Detection (genérica: bus + autos)")]
+    [SerializeField] private float lookAhead = 50f;        // cuánto mira hacia adelante
+    [SerializeField] private float castRadius = 0.5f;      // ancho del "cono" de detección
+    [SerializeField] private LayerMask vehicleLayerMask;   // capa Vehicle (bus + autos)
+    [SerializeField] private string busTag = "Bus";
+    [SerializeField] private string carTag = "Car";
+
+    [Header("Acceleration/Braking")]
+    [SerializeField] private float accel = 4.5f;
+    [SerializeField] private float brakeAccel = 7.5f;
+
+    [Header("Stop / Gap Tuning")]
+    [Tooltip("Comienza a frenar fuerte si el líder está dentro de esta distancia.")]
+    [SerializeField] private float stopDistance = 20f;
+
+    [Tooltip("Si el líder está más cerca que esto, detención total (0 m/s).")]
+    [SerializeField] private float hardStopDistance = 6.0f;
+
+    [Tooltip("Tiempo a colisión umbral: si TTC < este valor, frenar (seguridad dinámica).")]
+    [SerializeField] private float ttcThreshold = 1.8f; // segundos
+
+    [Tooltip("Velocidad objetivo mínima cuando hay líder cercano pero no en hard stop.")]
+    [SerializeField] private float minCrawlSpeed = 0.5f;
+
+    [Tooltip("Umbral para considerar detenido.")]
+    [SerializeField] private float standStillEpsilon = 0.05f;
 
     private List<Transform> path;
     private int index;
 
-    // control interno de velocidad (para suavidad)
-    private float cruiseSpeed;    // = speed (objetivo)
-    private float currentSpeed;   // velocidad real interpolada
+    private float cruiseSpeed;
+    private float currentSpeed;
 
     // -------------- API --------------
     public void SetPath(List<Transform> waypoints) => SetPath(waypoints, 0, true);
@@ -33,7 +50,7 @@ public class TrafficCarAI : MonoBehaviour
         path = waypoints;
         if (path == null || path.Count == 0)
         {
-            Debug.LogError($"{name}: SetPath recibió una lista vacía.");
+            Debug.LogError($"{name}: SetPath recibió lista vacía.");
             enabled = false;
             return;
         }
@@ -49,7 +66,7 @@ public class TrafficCarAI : MonoBehaviour
         }
 
         cruiseSpeed = Mathf.Max(0f, speed);
-        currentSpeed = cruiseSpeed; // arranca a crucero
+        currentSpeed = cruiseSpeed;
     }
 
     public void SetLoop(bool shouldLoop) => loop = shouldLoop;
@@ -57,7 +74,7 @@ public class TrafficCarAI : MonoBehaviour
     public void SetSpeed(float v)
     {
         speed = Mathf.Max(0f, v);
-        cruiseSpeed = speed; // actualiza crucero; currentSpeed subirá/bajará suavemente
+        cruiseSpeed = speed;
     }
 
     // -------------- Update --------------
@@ -65,7 +82,7 @@ public class TrafficCarAI : MonoBehaviour
     {
         if (path == null || path.Count == 0) return;
 
-        // 1) Apuntar al waypoint actual
+        // 1) Girar hacia el waypoint actual
         Vector3 target = path[index].position;
         Vector3 to = target - transform.position;
         Vector3 dir = to.normalized;
@@ -76,21 +93,72 @@ public class TrafficCarAI : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
         }
 
-        // 2) Calcular velocidad deseada SOLO por presencia de BUS
+        // 2) Calcular velocidad deseada considerando LÍDER (bus o auto) delante
         float desired = cruiseSpeed;
-        if (DetectBusAhead(out float busDist))
+
+        bool obstacleAhead = DetectObstacleAhead(
+            out float dist,
+            out Vector3 hitPoint,
+            out Rigidbody leadRb,
+            out GameObject leadObj
+        );
+
+        if (obstacleAhead)
         {
-            // Escala lineal según distancia: más cerca => más freno (hasta minSpeedNearBus)
-            float t = Mathf.Clamp01(busDist / Mathf.Max(0.1f, lookAhead));
-            desired = Mathf.Lerp(minSpeedNearBus, cruiseSpeed, t);
+            // Velocidad del líder (si tiene Rigidbody)
+            float leadSpeed = 0f;
+            if (leadRb) leadSpeed = leadRb.linearVelocity.magnitude;
+
+            // Relativa: (nuestra proyección forward) - (líder proyección hacia nuestro forward)
+            float relSpeed = currentSpeed - Vector3.Dot(leadRb ? leadRb.linearVelocity : Vector3.zero, transform.forward);
+
+            // 2.a) Zona crítica → parar
+            if (dist <= hardStopDistance)
+            {
+                desired = 0f;
+                currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, (brakeAccel * 2f) * Time.deltaTime);
+                if (currentSpeed <= standStillEpsilon || dist <= hardStopDistance * 0.9f)
+                    currentSpeed = 0f;
+            }
+            else
+            {
+                // 2.b) Freno por distancia (interp 0..crucero)
+                if (dist <= stopDistance)
+                {
+                    float t = Mathf.InverseLerp(0f, stopDistance, dist);
+                    float distBased = Mathf.Lerp(minCrawlSpeed, cruiseSpeed, t);
+
+                    // 2.c) Freno por TTC (si nos aproximamos rápido)
+                    // ttc = distancia / velocidad_relativa_hacia_el_líder (solo si nos acercamos)
+                    float ttc = Mathf.Infinity;
+                    if (relSpeed > 0.05f) ttc = dist / relSpeed;
+
+                    float ttcBased = (ttc < ttcThreshold) ? 0f : cruiseSpeed; // simple: bajo TTC, queremos 0
+
+                    // 2.d) Seguir velocidad del líder si está cerca (evita empujones)
+                    float followBased = Mathf.Max(leadSpeed, minCrawlSpeed);
+
+                    // Toma el mínimo de los tres "limitadores"
+                    desired = Mathf.Min(distBased, ttcBased, followBased);
+                }
+                else
+                {
+                    // fuera de zona de stop, pero con líder a la vista: da un colchón
+                    desired = Mathf.Min(cruiseSpeed, Mathf.Max(leadSpeed * 1.05f, cruiseSpeed * 0.9f));
+                }
+            }
         }
 
-        // 3) Suavizar velocidad actual hacia desired
-        float a = (desired < currentSpeed) ? brakeAccel : accel;
-        currentSpeed = Mathf.MoveTowards(currentSpeed, desired, a * Time.deltaTime);
+        // 3) Suavizar velocidad (si no estamos en hard stop)
+        if (!(obstacleAhead && dist <= hardStopDistance))
+        {
+            float a = (desired < currentSpeed) ? brakeAccel : accel;
+            currentSpeed = Mathf.MoveTowards(currentSpeed, desired, a * Time.deltaTime);
+        }
 
         // 4) Avanzar
-        transform.position += transform.forward * currentSpeed * Time.deltaTime;
+        if (currentSpeed > 0f)
+            transform.position += transform.forward * currentSpeed * Time.deltaTime;
 
         // 5) Consumir waypoints
         int safety = 0;
@@ -108,55 +176,92 @@ public class TrafficCarAI : MonoBehaviour
         }
     }
 
-    // -------------- BUS detection --------------
-    private bool DetectBusAhead(out float dist)
+    // -------------- Obstacle detection (bus + autos) --------------
+    // -------------- Obstacle detection (bus + autos) --------------
+    private bool DetectObstacleAhead(out float dist, out Vector3 hitPoint, out Rigidbody leadRb, out GameObject leadObj)
     {
         dist = lookAhead;
+        hitPoint = transform.position;
+        leadRb = null;
+        leadObj = null;
 
-        // Empuja el origen un poco hacia adelante para no tocarnos a nosotros mismos
+        // Origen adelantado para no autocolisionarse
         float forwardOffset = 0.5f;
         if (TryGetComponent<Collider>(out var myCol))
             forwardOffset = Mathf.Max(0.5f, myCol.bounds.extents.z + 0.2f);
 
         Vector3 origin = transform.position + Vector3.up * 0.5f + transform.forward * forwardOffset;
 
-        // Usamos SphereCastAll para filtrar manualmente
+        // ---- Primera pasada: detectar vehículos en layer Vehicle ----
         var hits = Physics.SphereCastAll(
             origin,
             castRadius,
             transform.forward,
             lookAhead,
-            busLayerMask, // si no usas una capa específica, deja "Everything" (default ~0)
+            vehicleLayerMask,
             QueryTriggerInteraction.Ignore
         );
 
-        if (hits == null || hits.Length == 0) return false;
+        // ---- Segunda pasada: detectar bus en SU PROPIA LAYER ----
+        var busHits = Physics.SphereCastAll(
+            origin,
+            castRadius,
+            transform.forward,
+            lookAhead,
+            ~0, // Everything
+            QueryTriggerInteraction.Ignore
+        );
 
+        // Combinamos ambas listas
+        List<RaycastHit> allHits = new List<RaycastHit>();
+        if (hits != null && hits.Length > 0) allHits.AddRange(hits);
+        if (busHits != null && busHits.Length > 0)
+        {
+            foreach (var h in busHits)
+            {
+                var go = h.collider.attachedRigidbody ? h.collider.attachedRigidbody.gameObject : h.collider.gameObject;
+                if (go.CompareTag(busTag)) allHits.Add(h);
+            }
+        }
+
+        if (allHits.Count == 0) return false;
+
+        // ---- Filtramos el más cercano realmente adelante ----
         float best = float.PositiveInfinity;
+        RaycastHit bestHit = default;
 
-        foreach (var h in hits)
+        foreach (var h in allHits)
         {
             var go = h.collider.attachedRigidbody ? h.collider.attachedRigidbody.gameObject : h.collider.gameObject;
 
-            // ignora self y sus hijos
+            // ignorar self
             if (go == gameObject || go.transform.IsChildOf(transform)) continue;
 
-            // exige tag BUS
-            if (!go.CompareTag(busTag)) continue;
+            // Solo considerar vehículos o bus (por tag)
+            bool isVehicle = go.CompareTag(carTag) || go.CompareTag(busTag);
+            if (!isVehicle) continue;
 
-            // confirmar que está realmente enfrente (no lateral/atrás)
+            // Solo si está adelante
             Vector3 toHit = (h.point - transform.position).normalized;
             if (Vector3.Dot(transform.forward, toHit) < 0.3f) continue;
 
-            // mantener la distancia mínima
-            if (h.distance < best) best = h.distance;
+            if (h.distance < best)
+            {
+                best = h.distance;
+                bestHit = h;
+            }
         }
 
         if (float.IsInfinity(best)) return false;
 
         dist = best;
+        hitPoint = bestHit.point;
+        leadObj = bestHit.collider.attachedRigidbody ? bestHit.collider.attachedRigidbody.gameObject : bestHit.collider.gameObject;
+        leadRb = bestHit.rigidbody;
+
         return true;
     }
+
 
     // -------------- Gizmos --------------
     private void OnDrawGizmosSelected()
@@ -169,7 +274,6 @@ public class TrafficCarAI : MonoBehaviour
             Gizmos.DrawLine(path[^1].position, path[0].position);
         }
 
-        // Visual del detector
         Gizmos.color = Color.cyan;
         float forwardOffset = 0.5f;
         if (TryGetComponent<Collider>(out var myCol))

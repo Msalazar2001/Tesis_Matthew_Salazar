@@ -78,6 +78,30 @@ namespace BNG
         public float MaxHoldBrakeTorque = 4000f;
         // --------------------------------------------------------
 
+        // ---------- ADVANCED STEERING (OPCIONAL) ----------
+        [Header("Advanced Steering (Optional)")]
+        [Tooltip("Usar una curva para atenuar el giro según la velocidad (en lugar de un Lerp lineal).")]
+        public bool UseSteeringSpeedCurve = true;
+
+        [Tooltip("x = speed01 (0..1 en relación a MaxSpeed), y = factor de giro (1 = 100%)")]
+        public AnimationCurve SteeringSpeedCurve = new AnimationCurve(
+            new Keyframe(0f, 1f),      // 0% de MaxSpeed → 100% de giro
+            new Keyframe(0.6f, 0.8f),  // 60% de MaxSpeed → 80% de giro
+            new Keyframe(1f, 0.5f)     // 100% de MaxSpeed → 50% de giro
+        );
+
+        [Tooltip("Multiplica levemente el ángulo máximo a alta velocidad (1 = sin cambio).")]
+        [Range(1f, 1.5f)]
+        public float HighSpeedAngleMultiplier = 1.0f;
+
+        [Tooltip("Multiplica la tasa máx de cambio del steering a alta velocidad (1 = sin cambio).")]
+        [Range(1f, 3f)]
+        public float HighSpeedRateMultiplier = 1.0f;
+
+        [Tooltip("Desde qué velocidad (km/h) empieza a aplicar los boosts de alta velocidad.")]
+        public float HighSpeedStartKmh = 30f;
+        // ---------------------------------------------------
+
         // ---------- Tuning de Volante ----------
         [Header("Steering Tuning")]
         [Tooltip("Multiplicador de sensibilidad del volante (0.3-1.0 recomendado)")]
@@ -299,11 +323,21 @@ namespace BNG
                     continue;
 
                 // Dirección (usa el ángulo normalizado filtrado -1..1)
+                // Dirección (ángulo efectivo con pequeño boost en alta velocidad)
                 if (wheel.ApplySteering)
                 {
-                    wheel.Wheel.steerAngle =
-                        Mathf.Clamp(MaxSteeringAngle * SteeringAngle, -MaxSteeringAngle, MaxSteeringAngle);
+                    float effectiveMaxSteer = MaxSteeringAngle;
+
+                    if (HighSpeedAngleMultiplier > 1f)
+                    {
+                        float hs01 = Mathf.InverseLerp(HighSpeedStartKmh, MaxSpeed, CurrentSpeed);
+                        effectiveMaxSteer *= Mathf.Lerp(1f, HighSpeedAngleMultiplier, Mathf.Clamp01(hs01));
+                    }
+
+                    float steer = Mathf.Clamp(effectiveMaxSteer * SteeringAngle, -effectiveMaxSteer, effectiveMaxSteer);
+                    wheel.Wheel.steerAngle = steer;
                 }
+
 
                 // Torque
                 if (wheel.ApplyTorque)
@@ -351,16 +385,25 @@ namespace BNG
             float curved = Mathf.Lerp(a, a * a * a, Mathf.Clamp01(SteeringExpo));
             x = Mathf.Sign(x) * curved;
 
-            // 5) Reducción según velocidad (menos giro a más velocidad)
+            // 5) Reducción según velocidad (curva opcional en vez de Lerp lineal)
             float speed01 = Mathf.Clamp01(CurrentSpeed / Mathf.Max(1f, MaxSpeed));
-            float speedFactor = Mathf.Lerp(1f, HighSpeedSteeringFactor, speed01);
+            float speedFactor = UseSteeringSpeedCurve
+                ? Mathf.Clamp(SteeringSpeedCurve.Evaluate(speed01), 0.1f, 1f)
+                : Mathf.Lerp(1f, HighSpeedSteeringFactor, speed01);
             x *= speedFactor;
 
-            // 6) Límite de tasa + suavizado
-            _steeringSmoothed = Mathf.MoveTowards(_steeringSmoothed, x, SteeringMaxRate * Time.deltaTime);
+            // 6) Límite de tasa + suavizado (boost opcional en alta velocidad)
+            float rate = SteeringMaxRate;
+            if (HighSpeedRateMultiplier > 1f)
+            {
+                float hs01 = Mathf.InverseLerp(HighSpeedStartKmh, MaxSpeed, CurrentSpeed);
+                rate *= Mathf.Lerp(1f, HighSpeedRateMultiplier, Mathf.Clamp01(hs01));
+            }
+            _steeringSmoothed = Mathf.MoveTowards(_steeringSmoothed, x, rate * Time.deltaTime);
 
-            // 7) Asignación final (normalizado -1..1)
+            // 7) Asignación final
             SteeringAngle = _steeringSmoothed;
+
         }
 
         // Setters de dirección / motor (todos pasan por el pipeline)

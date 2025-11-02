@@ -1128,7 +1128,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da844a98319db1543812bfffed0db59e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneName: Oficina
+  defaultSceneName: 
 --- !u!4 &894238538
 Transform:
   m_ObjectHideFlags: 0
@@ -1252,7 +1252,7 @@ PrefabInstance:
     - target: {fileID: 747823733685528413, guid: 1b997e066ed111646a7e39ff4404231a,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
-      value: 1
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 747823733685528413, guid: 1b997e066ed111646a7e39ff4404231a,
         type: 3}
@@ -1292,12 +1292,17 @@ PrefabInstance:
     - target: {fileID: 747823733685528413, guid: 1b997e066ed111646a7e39ff4404231a,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: ButtonLoadScene, Assembly-CSharp
+      value: SceneLoader, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 747823733685528413, guid: 1b997e066ed111646a7e39ff4404231a,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
       value: UnityEngine.AudioSource, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 747823733685528413, guid: 1b997e066ed111646a7e39ff4404231a,
+        type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_StringArgument
+      value: Oficina
       objectReference: {fileID: 0}
     - target: {fileID: 747823733685528413, guid: 1b997e066ed111646a7e39ff4404231a,
         type: 3}

@@ -89,13 +89,16 @@ public class Parada : MonoBehaviour
             Pasajero pasajero = pasajeroGO.GetComponent<Pasajero>();
             if (pasajero != null)
             {
+                // **ENUMERACIÓN**: 0,1,2,... según el orden de generación
+                pasajero.SetTurno(i);
                 pasajerosEnParada.Add(pasajero);
             }
         }
     }
 
     /// <summary>
-    /// El bus llama a esta función indicando cuántos espacios libres tiene.
+    /// (Opcional / legacy) El bus llama a esta función indicando cuántos espacios libres tiene.
+    /// Si sigues usando SubirPasajeroSecuencial ya no es necesario llamar a esto.
     /// </summary>
     public void RecibirBus(int espacioDisponible)
     {

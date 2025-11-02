@@ -183,4 +183,14 @@ public class GameManager : MonoBehaviour
 
     }
 
+    // GameManager.cs (agrega al final de la clase)
+    public void EndRun()
+    {
+        // Ya tienes estas llamadas repartidas; aquí las centralizamos si quieres llamarlo desde varios sitios
+        DetenerCronometro();
+        dineroFinal = CalcularValores(); // guarda el resultado final
+        Debug.Log($"[EndRun] Dinero final guardado: ${dineroFinal:0.00}");
+    }
+
+
 }

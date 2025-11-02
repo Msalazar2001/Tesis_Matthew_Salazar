@@ -18225,7 +18225,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da844a98319db1543812bfffed0db59e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneName: Juego
+  defaultSceneName: 
 --- !u!4 &1201116702
 Transform:
   m_ObjectHideFlags: 0
@@ -21755,7 +21755,7 @@ PrefabInstance:
     - target: {fileID: 1765546623450899079, guid: 2af1d2045149fe743b81bc4d1a6f8406,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.0603
+      value: 0.0585
       objectReference: {fileID: 0}
     - target: {fileID: 1765546623450899079, guid: 2af1d2045149fe743b81bc4d1a6f8406,
         type: 3}

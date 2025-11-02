@@ -1,319 +1,247 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 
+/// <summary>
+/// Pasajero sin animaciones:
+/// - Puede recibir rutas (waypoints) y caminar hacia ellos.
+/// - Puede sentarse (parent al seatAnchor y alinear posición/rotación).
+/// - Puede bajarse: reparent al mundo, posicionar en ExitAnchor y seguir waypoints de salida.
+/// </summary>
 public class Pasajero : MonoBehaviour
 {
-    [Header("Movimiento")]
-    [SerializeField] float velocidad = 3f;
+    [Header("Movimiento (sin animaciones)")]
+    [SerializeField] float velocidad = 2.6f;
     [SerializeField] float giroSuave = 10f;
     [SerializeField] float distanciaArribo = 0.12f;
+    [SerializeField] Animator animator;  // arrástralo en el prefab
 
-    [Header("Refs")]
-    [SerializeField] Animator animator; // arrástralo en Inspector
+    // ——— NUEVO: índice/turno en la fila de la parada ———
+    [SerializeField, Tooltip("Orden en la fila de la parada (0,1,2,...)")]
+    int turnoEnParada = int.MaxValue;
+    public int TurnoEnParada => turnoEnParada;
+    public void SetTurno(int t) { turnoEnParada = t; }
 
-    // Parámetros del Animator (crea estos):
-    readonly int SpeedH = Animator.StringToHash("Speed");     // Float
-    readonly int SitDownH = Animator.StringToHash("SitDown");   // Trigger -> va al estado "Sitting"
-    readonly int StandUpH = Animator.StringToHash("StandUp");   // Trigger -> estado "Stand Up"
-    readonly int TalkingH = Animator.StringToHash("Talking");   // Trigger -> estado "Talking"
-    readonly int StairsH = Animator.StringToHash("Stairs");    // Trigger -> estado "Ascending Stairs"
+    bool HasParam(string name, AnimatorControllerParameterType type)
+    {
+        if (!animator) return false;
+        foreach (var p in animator.parameters) if (p.type == type && p.name == name) return true;
+        return false;
+    }
+    void SetSpeed(float v)
+    {
+        if (HasParam("speed", AnimatorControllerParameterType.Float)) animator.SetFloat("speed", v);
+    }
+    void Fire(string triggerName)
+    {
+        if (HasParam(triggerName, AnimatorControllerParameterType.Trigger)) animator.SetTrigger(triggerName);
+    }
 
-    // NOMBRES DE ESTADOS (exactos a tu Animator)
-    const string ST_IDLE = "Idle";
-    const string ST_WALK = "Walking";
-    const string ST_STAIRS = "Ascending Stairs";
-    const string ST_SIT = "Sitting";
-    const string ST_TALK = "Talking";
-    const string ST_UP = "Stand Up";
-
+    // Ruta actual
     Queue<Transform> ruta = new Queue<Transform>();
     Transform objetivo;
-    bool mov = false;
-    bool bloqueado = false;
 
-    void Awake() { InitAnimator(); }
-    void OnEnable()
-    {
-        ResetAnimatorToIdle();
-    }
+    // Estado simple
+    bool moviendo = false;
+    bool sentado = false;
 
-    void ResetAnimatorToIdle()
-    {
-        if (!animator) animator = GetComponent<Animator>();
+    // Refs opcionales
+    Transform seatAnchorActual;    // dónde está sentado
+    Transform busRootActual;       // raíz del bus (si quieres mantener parenting dentro del bus)
 
-        // Limpia cualquier estado previo y triggers residuales
-        animator.Rebind();
-        animator.Update(0f);
-        animator.ResetTrigger(SitDownH);
-        animator.ResetTrigger(StandUpH);
-        animator.ResetTrigger(TalkingH);
-        animator.ResetTrigger(StairsH);
+    // =============== API PÚBLICA ===============
 
-        // Valores deterministas
-        animator.SetFloat(SpeedH, 0f);
-
-        // Fuerza estado de entrada
-        animator.Play("Idle", 0, 0f);
-    }
-
-
-    void InitAnimator()
-    {
-        if (!animator) animator = GetComponent<Animator>();
-
-        // Limpia triggers “pegados”
-        animator.ResetTrigger("SitDown");
-        animator.ResetTrigger("StandUp");
-        animator.ResetTrigger("Talking");
-        animator.ResetTrigger("Stairs");
-
-        // Fuerza Idle y Speed = 0  
-        animator.Update(0f);      
-        animator.SetFloat("Speed", 0f);
-        animator.CrossFade("Idle", 0f); 
-    }
-
-
-    // Llama esto con tu lista de waypoints (entrada → asiento, etc.)
+    /// <summary> Define una ruta de puntos a seguir (entrada, pasillo, etc.). </summary>
     public void SetRuta(params Transform[] puntos)
     {
         ruta.Clear();
-        foreach (var p in puntos) ruta.Enqueue(p);
-        if (ruta.Count > 0) { objetivo = ruta.Dequeue(); mov = true; }
+        if (puntos != null)
+            foreach (var p in puntos)
+                if (p) ruta.Enqueue(p);
+
+        objetivo = ruta.Count > 0 ? ruta.Dequeue() : null;
+        moviendo = objetivo != null;
     }
 
-    void Update()
-    {
-        bool caminando = (mov && !bloqueado && objetivo != null);
-
-        //  Speed limpio, sin damping, y con flatten a cero
-        float targetSpeed = caminando ? velocidad : 0f;
-        if (!caminando || targetSpeed < 0.001f) targetSpeed = 0f;
-        animator.SetFloat(SpeedH, targetSpeed);
-
-        if (!caminando) return;
-
-        // 2) Orientar
-        Vector3 dir = objetivo.position - transform.position;
-        Vector3 plano = new Vector3(dir.x, 0f, dir.z);
-        if (plano.sqrMagnitude > 0.0001f)
-        {
-            var rot = Quaternion.LookRotation(plano.normalized, Vector3.up);
-            transform.rotation = Quaternion.Lerp(transform.rotation, rot, giroSuave * Time.deltaTime);
-        }
-
-        // 3) Avanzar
-        transform.position = Vector3.MoveTowards(transform.position, objetivo.position, velocidad * Time.deltaTime);
-
-        // 4) Arribo
-        if (Vector3.Distance(transform.position, objetivo.position) <= distanciaArribo)
-        {
-            OnArrive(objetivo);
-
-            if (!bloqueado)
-            {
-                if (ruta.Count > 0) objetivo = ruta.Dequeue();
-                else mov = false;
-            }
-        }
-    }
-
-
-    void OnArrive(Transform wp)
-    {
-        var act = wp.GetComponent<WaypointAction>();
-        if (!act) return;
-
-        // Alineación (útil para silla/escalón)
-        var t = act.alignTarget ? act.alignTarget : wp;
-        transform.position = t.position;
-        transform.rotation = Quaternion.LookRotation(t.forward, Vector3.up);
-
-        switch (act.action)
-        {
-            case WaypointAction.ActionType.AlignOnly:
-                break;
-
-            case WaypointAction.ActionType.Stairs:
-                animator.SetFloat(SpeedH, 0f);       // corta el blend de caminar
-                animator.SetTrigger(StairsH);
-                break;
-
-
-                
-            case WaypointAction.ActionType.SitDown:
-                {
-                    // corta caminar y alinea al asiento
-                    animator.SetFloat(SpeedH, 0f);
-                    var te = act.alignTarget ? act.alignTarget : wp;
-                    Vector3 pos = t.position + t.TransformVector(act.localOffset);
-                    Quaternion rot = Quaternion.LookRotation(t.forward, Vector3.up);
-                    transform.SetPositionAndRotation(pos, rot);
-
-                    //  fuerza prioridad visual y dispara trigger
-                    animator.SetFloat(SpeedH, 0f);
-                    StartCoroutine(PlayAndBlock(SitDownH, "Sitting"));
-
-                    // (opcional) al terminar, anclar al asiento:
-                    // transform.SetParent(t, true);
-                    break;
-                }
-
-
-
-
-            case WaypointAction.ActionType.SittingIdle:
-                StartCoroutine(WaitSitting(2f));                     // opcional, quedarse sentado N s
-                break;
-
-            case WaypointAction.ActionType.Talking:
-                StartCoroutine(PlayAndBlock(TalkingH, ST_TALK, 2f)); // habla ~2s o hasta fin de clip
-                break;
-
-            case WaypointAction.ActionType.StandUp:
-                StartCoroutine(PlayAndBlock(StandUpH, ST_UP));       // vuelve a Idle por transición
-                break;
-        }
-    }
-
-    IEnumerator PlayAndBlock(int triggerHash, string stateName, float minSeconds = 0f, int layer = 0)
-    {
-        bloqueado = true; mov = false;
-        animator.SetFloat(SpeedH, 0f);
-        animator.SetTrigger(triggerHash);
-
-        // esperar a entrar al estado
-        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(layer).IsName(stateName));
-        // esperar a que termine (o mínimo tiempo)
-        float t = 0f;
-        while (true)
-        {
-            var st = animator.GetCurrentAnimatorStateInfo(layer);
-            if (st.IsName(stateName) && st.normalizedTime >= 0.99f && t >= minSeconds) break;
-            t += Time.deltaTime;
-            yield return null;
-        }
-
-        bloqueado = false;
-        if (ruta.Count > 0) { mov = true; objetivo = ruta.Dequeue(); }
-    }
-
-    IEnumerator WaitSitting(float seconds)
-    {
-        bloqueado = true; mov = false;
-        animator.SetFloat(SpeedH, 0f);
-        yield return new WaitForSeconds(seconds);
-        bloqueado = false;
-        if (ruta.Count > 0) { mov = true; objetivo = ruta.Dequeue(); }
-    }
-
-    // --- COMPATIBILIDAD CON Bus.cs ---
-
-    // Antes recibías: waypoints de entrada, luego un punto de "columna" y el "asiento"
+    /// <summary> Compatibilidad: ruta de entrada (p. ej. waypoints + columna + asiento). </summary>
     public void AsignarRutaConEntrada(Transform[] waypointsEntrada, Transform columna, Transform asiento)
     {
-        // armamos la ruta en el orden que espera tu lógica actual
         List<Transform> puntos = new List<Transform>();
         if (waypointsEntrada != null) puntos.AddRange(waypointsEntrada);
         if (columna) puntos.Add(columna);
         if (asiento) puntos.Add(asiento);
-
         SetRuta(puntos.ToArray());
     }
 
-    // Para la salida solo recibías la secuencia de waypoints
+    /// <summary> Compatibilidad: asigna ruta de salida (camina hacia afuera). </summary>
     public void AsignarRutaDeSalida(Transform[] waypointsSalida)
     {
-        ruta = new Queue<Transform>();
+        ruta.Clear();
         if (waypointsSalida != null)
-            foreach (var p in waypointsSalida) ruta.Enqueue(p);
+            foreach (var p in waypointsSalida)
+                if (p) ruta.Enqueue(p);
 
-        if (ruta.Count > 0)
-        {
-            objetivo = ruta.Dequeue();
-            bloqueado = false;   // asegúrate de desbloquear
-            mov = true;          // ENCIENDE movimiento
-        }
+        objetivo = ruta.Count > 0 ? ruta.Dequeue() : null;
+        moviendo = objetivo != null;
+        sentado = false; // ya no está sentado si va a salir
     }
 
-    // Fuerza que el Animator entre a Walking y que el script quede en modo "moverse"
-    public void ForzarCaminar()
-    {
-        // por si venía de estar sentado / hablando / escaleras
-        animator.ResetTrigger(TalkingH);
-        animator.ResetTrigger(SitDownH);
-        animator.ResetTrigger(StandUpH);
-        animator.ResetTrigger(StairsH);
-
-        // activa el flujo de locomoción del propio script
-        bloqueado = false;     // si usas esta bandera
-        mov = true;            // si usas esta bandera en tu Update
-                               // si usas objetivo/ruta, ya lo define AsignarRutaConEntrada
-
-        // sube el parámetro Speed (tu Animator Idle->Walking escucha Speed>0.1)
-        animator.SetFloat(SpeedH, velocidad);
-
-        // y además fuerza el estado (por si la condición aún no se ha evaluado)
-        animator.CrossFade("Walking", 0.1f);
-    }
-
-    public void AdoptarDelBus(Transform busRoot)
-    {
-        // Mantén posición/rotación en mundo
-        transform.SetParent(busRoot, true);
-    }
-
+    /// <summary> Coloca al pasajero sentado en un seatAnchor exacto (sin animación). </summary>
     public void AdoptarDelAsiento(Transform seatAnchor)
     {
-        // Si ya tienes SeatAnchor (hijo del bus), lo puedes parentar directo al sentarse
+        if (!seatAnchor) return;
+        seatAnchorActual = seatAnchor;
+
+        // Parent al asiento y alinear exacto
         transform.SetParent(seatAnchor, true);
+        transform.position = seatAnchor.position;
+        transform.rotation = seatAnchor.rotation;
+
+        // Estado
+        moviendo = false;
+        sentado = true;
     }
 
-    public void SoltarDelBus(Transform nuevoPadre = null)
+    /// <summary> (Opcional) Indica el root del bus para mantener parenting interno. </summary>
+    public void AdoptarDelBus(Transform busRoot)
     {
-        // Pásalo a raíz de la escena o a otra parada
-        transform.SetParent(nuevoPadre, true); // si null → queda sin padre
-    }
-
-    public void PrepararBajada(Transform[] waypointsSalida, Transform busRoot = null, Transform nuevoPadreFuera = null)
-    {
-        StartCoroutine(BajarSecuenciaSimple(waypointsSalida, busRoot, nuevoPadreFuera));
-    }
-
-    private IEnumerator BajarSecuenciaSimple(Transform[] waypointsSalida, Transform busRoot, Transform nuevoPadreFuera)
-    {
-        // Sube al root del bus (si estaba pegado al asiento)
+        busRootActual = busRoot;
         if (busRoot) transform.SetParent(busRoot, true);
+    }
 
-        // Corta caminar y dispara levantar
-        animator.SetFloat(SpeedH, 0f);
-        animator.ResetTrigger(SitDownH);
-        animator.ResetTrigger(TalkingH);
-        animator.SetTrigger(StandUpH);
-        animator.CrossFade("Stand Up", 0.05f, 0, 0f); // si existe, entra ya
+    /// <summary>
+    /// Inicia la bajada: suelta del asiento/bus, lo coloca en ExitAnchor y le asigna la ruta de salida.
+    /// </summary>
+    public void IniciarBajada(Transform exitAnchor, Transform[] waypointsSalida, Transform nuevoPadreFuera = null)
+    {
+        // Soltar del asiento y (opcional) del bus
+        seatAnchorActual = null;
 
-        // Espera un rato corto (0.3–0.6s) y sigue, aunque el estado no se haya validado
-        yield return new WaitForSeconds(0.5f);
+        if (nuevoPadreFuera != null)
+            transform.SetParent(nuevoPadreFuera, true);
+        else
+            transform.SetParent(null, true); // sin padre
 
-        // Asigna ruta de salida y fuerza locomoción
-        AsignarRutaDeSalida(waypointsSalida);
-        ForzarCaminar();
-
-        // Espera hasta terminar ruta (tu Update pone mov=false al terminar)
-        float timeout = 6f; // por si acaso, evita quedarte infinito
-        while ((mov || bloqueado) && timeout > 0f)
+        // Colocar en el punto de salida de la puerta
+        if (exitAnchor)
         {
-            timeout -= Time.deltaTime;
-            yield return null;
+            transform.position = exitAnchor.position;
+            transform.rotation = exitAnchor.rotation;
         }
 
-        // Reparenta fuera del bus
-        if (nuevoPadreFuera) transform.SetParent(nuevoPadreFuera, true);
-        else transform.SetParent(null, true);
+        // Asignar ruta de salida
+        AsignarRutaDeSalida(waypointsSalida);
     }
 
+    void OnEnable()
+    {
+        if (!animator) animator = GetComponent<Animator>();
+        if (animator)
+        {
+            animator.Rebind();
+            animator.Update(0f);
+            SetSpeed(0f);
+            animator.Play("Idle", 0, 0f);  // nombre exacto del estado Idle
+        }
+    }
 
+    // =============== LOOP DE MOVIMIENTO ===============
 
+    void Update()
+    {
+        if (!moviendo || objetivo == null) return;
 
+        // Dirección en plano
+        Vector3 dir = objetivo.position - transform.position;
+        Vector3 plano = new Vector3(dir.x, 0f, dir.z);
+        float targetSpeed = (moviendo && objetivo != null) ? velocidad : 0f;
+        SetSpeed(targetSpeed);
+
+        // Rotar suave hacia el objetivo
+        if (plano.sqrMagnitude > 0.0001f)
+        {
+            var rot = Quaternion.LookRotation(plano.normalized, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, rot, giroSuave * Time.deltaTime);
+        }
+
+        // Avanzar
+        float step = velocidad * Time.deltaTime;
+        transform.position = Vector3.MoveTowards(transform.position, objetivo.position, step);
+
+        // Arribo
+        if (Vector3.Distance(transform.position, objetivo.position) <= distanciaArribo)
+        {
+            OnArrive(objetivo);
+
+            if (ruta.Count > 0)
+            {
+                objetivo = ruta.Dequeue();
+            }
+            else
+            {
+                objetivo = null;
+                moviendo = false;
+            }
+        }
+    }
+
+    // =============== LLEGADA A WAYPOINT ===============
+
+    void OnArrive(Transform wp)
+    {
+        // Si el waypoint tiene una acción de alineación, la respetamos.
+        var act = wp.GetComponent<WaypointAction>();
+        if (act)
+        {
+            // Intentamos usar alignTarget si existe; si no, el propio WP
+            Transform t = act.alignTarget ? act.alignTarget : wp;
+
+            // Alinear posición/rotación exacta
+            transform.position = t.position;
+            transform.rotation = Quaternion.LookRotation(t.forward, Vector3.up);
+
+            // Animaciones “opcionales” y asiento
+            bool esSentarse = (act && (act.TryIs("SitDown") || act.TryIs("Sitting")));
+            if (esSentarse)
+            {
+                Fire("SitDown");
+                AdoptarDelAsiento(t);
+            }
+            bool esLevantarse = (act && act.TryIs("StandUp"));
+            if (esLevantarse)
+            {
+                Fire("StandUp");
+                // tu flujo ya se encarga del resto
+            }
+        }
+    }
+}
+
+// ================== EXTENSIÓN PEQUEÑA PARA WaypointAction ==================
+public static class WaypointActionExtensions
+{
+    public static bool TryIs(this Component act, string friendlyName)
+    {
+        if (!act) return false;
+        var t = act.GetType();
+
+        // field "action" (enum/string)
+        var fAction = t.GetField("action");
+        if (fAction != null)
+        {
+            var v = fAction.GetValue(act);
+            if (v != null && v.ToString().ToLower().Contains(friendlyName.ToLower()))
+                return true;
+        }
+
+        // field "tipo" (enum/string)
+        var fTipo = t.GetField("tipo");
+        if (fTipo != null)
+        {
+            var v = fTipo.GetValue(act);
+            if (v != null && v.ToString().ToLower().Contains(friendlyName.ToLower()))
+                return true;
+        }
+
+        return false;
+    }
 }

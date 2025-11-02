@@ -1,17 +1,22 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using BNG;
 using UnityEngine;
 
 public class Bus : MonoBehaviour
 {
+    [Header("Capacidad")]
     [SerializeField] int espacioDisponible = 3;
     [SerializeField] VehicleController vehicleController;
 
-    [SerializeField] Transform puntoEntradaPasajeros;
-    [SerializeField] Transform[] waypointsEntradaBus;
-    [SerializeField] Transform[] waypointsSalidaBus;
-    [SerializeField] Transform[] columnas;
-    [SerializeField] Transform[] asientos;
+    [Header("Waypoints / Anclajes")]
+    [SerializeField] Transform puntoEntradaPasajeros;   // opcional
+    [SerializeField] Transform exitAnchor;              // punto en la puerta para bajar
+    [SerializeField] Transform[] waypointsEntradaBus;   // pasillo de entrada
+    [SerializeField] Transform[] waypointsSalidaBus;    // ruta de salida (en el suelo, no hijos del bus)
+    [SerializeField] Transform[] columnas;              // columnas/pasillo interno
+    [SerializeField] Transform[] asientos;              // seat anchors (donde se sientan)
+    [SerializeField] EndRunPanel endRunPanel;
 
     Parada parada;
 
@@ -34,16 +39,18 @@ public class Bus : MonoBehaviour
         pasajerosBajando = Random.Range(0, pasajerosActuales + 1);
         print("Se van a bajar " + pasajerosBajando + " pasajeros.");
 
-        InvokeRepeating("BajarPasajeros", 1, 2);
-        InvokeRepeating("SubirPasajeros", 1, 2);
+        // Bajadas tal como lo tenías
+        InvokeRepeating(nameof(BajarPasajeros), 1f, 2f);
+
+        // SUBIDAS **SECUENCIALES**: 1 pasajero por tick, cada 1 segundo, según su índice
+        InvokeRepeating(nameof(SubirPasajeroSecuencial), 1f, 1f);
 
         if (parada.ultimaParada)
         {
             EnviarTotalPasajeros();
-            GameManager.Instance.CalcularValores();
-            GameManager.Instance.DetenerCronometro();
-            Time.timeScale = 0f;
-            AudioListener.pause = true;
+            GameManager.Instance.EndRun();
+            if (endRunPanel != null) endRunPanel.Show();
+            else Debug.LogError("[Bus] EndRunPanel no está asignado en el Inspector.");
         }
     }
 
@@ -62,59 +69,84 @@ public class Bus : MonoBehaviour
         return -1;
     }
 
-    public void SubirPasajeros()
+    /// <summary>
+    /// Nuevo: sube exactamente 1 pasajero por segundo, respetando el orden (turno) asignado en la Parada.
+    /// </summary>
+    private void SubirPasajeroSecuencial()
     {
-        List<Pasajero> pasajeros = parada.pasajerosEnParada;
+        if (parada == null) { CancelInvoke(nameof(SubirPasajeroSecuencial)); return; }
+        if (espacioDisponible <= 0) { CancelInvoke(nameof(SubirPasajeroSecuencial)); return; }
 
-        int cantidadASubir = Mathf.Min(pasajeros.Count, espacioDisponible);
-        int boarded = 0; // <-- NUEVO: contador de abordados en esta tanda
+        var lista = parada.pasajerosEnParada;
+        if (lista == null || lista.Count == 0) { CancelInvoke(nameof(SubirPasajeroSecuencial)); return; }
 
-        for (int i = 0; i < cantidadASubir; i++)
+        int asientoLibre = BuscarPrimerAsientoLibre();
+        if (asientoLibre == -1)
         {
-            int asientoLibre = BuscarPrimerAsientoLibre();
-            if (asientoLibre == -1) break;
-
-            Pasajero pasajero = pasajeros[i];
-
-            int columna = asientoLibre / 4;
-            Transform puntoColumna = columnas[columna];
-            Transform asientoDestino = asientos[asientoLibre];
-
-            pasajero.AsignarRutaConEntrada(waypointsEntradaBus, puntoColumna, asientoDestino);
-            pasajero.ForzarCaminar();
-
-            pasajero.AdoptarDelBus(transform);
-
-            asientosOcupados[asientoLibre] = true;
-
-            print($"Pasajero ocupa COLUMNA {columna + 1}, ASIENTO {asientoLibre + 1}");
-
-            pasajerosActuales++;
-            espacioDisponible--;
-            totalPasajerosRecogidos++;
-            parada.cantidadPasajeros--;
-            boarded++; // <-- NUEVO
+            // No hay más asientos → detenemos la subida
+            CancelInvoke(nameof(SubirPasajeroSecuencial));
+            return;
         }
 
-        // Avisar al GameManager cuántos subieron en esta pasada
-        if (boarded > 0)
+        // Elegimos el pasajero con menor "turno" (orden en la fila)
+        Pasajero siguiente = null;
+        int minTurno = int.MaxValue;
+        int indexEnLista = -1;
+
+        for (int i = 0; i < lista.Count; i++)
         {
-            GameManager.Instance?.PasajeroSubio(boarded); // <-- NUEVO
+            var p = lista[i];
+            if (!p) continue;
+            if (p.TurnoEnParada < minTurno)
+            {
+                minTurno = p.TurnoEnParada;
+                siguiente = p;
+                indexEnLista = i;
+            }
         }
 
-        // Limpieza de la cola de la parada
-        if (cantidadASubir > 0)
+        if (siguiente == null)
         {
-            parada.pasajerosEnParada.RemoveRange(0, cantidadASubir);
+            // Algo raro: no hay pasajero válido
+            CancelInvoke(nameof(SubirPasajeroSecuencial));
+            return;
         }
 
-        if (parada.cantidadPasajeros == 0 || espacioDisponible == 0)
-        {
-            CancelInvoke("SubirPasajeros");
-        }
+        // Columna según layout (cada 4 asientos una columna)
+        int columna = Mathf.Clamp(asientoLibre / 4, 0, Mathf.Max(0, columnas.Length - 1));
+        Transform puntoColumna = columnas.Length > 0 ? columnas[columna] : null;
+        Transform asientoDestino = asientos[asientoLibre];
+
+        // Ruta de entrada (pasillo -> columna -> asiento)
+        siguiente.AsignarRutaConEntrada(waypointsEntradaBus, puntoColumna, asientoDestino);
+
+        // Parent bajo el bus mientras está adentro (sin animaciones)
+        siguiente.AdoptarDelBus(transform);
+
+        // Marcar asiento
+        asientosOcupados[asientoLibre] = true;
+
+        print($"[Bus] Sube pasajero #{siguiente.TurnoEnParada} → COLUMNA {columna + 1}, ASIENTO {asientoLibre + 1}");
+
+        pasajerosActuales++;
+        espacioDisponible--;
+        totalPasajerosRecogidos++;
+        parada.cantidadPasajeros--;
+
+        // Removerlo de la parada
+        if (indexEnLista >= 0 && indexEnLista < lista.Count)
+            lista.RemoveAt(indexEnLista);
+
+        // Notificar (1 pasajero subido)
+        GameManager.Instance?.PasajeroSubio(1);
+
+        // Si ya no hay pasajeros o no hay espacio, detener
+        if (parada.cantidadPasajeros <= 0 || espacioDisponible <= 0)
+            CancelInvoke(nameof(SubirPasajeroSecuencial));
     }
 
-
+    // ————————————————————————————————————————————————
+    // Dejo tu lógica de bajada igual
     public void BajarPasajeros()
     {
         if (pasajerosBajando > 0)
@@ -123,7 +155,7 @@ public class Bus : MonoBehaviour
 
             if (pasajero != null)
             {
-                // liberar asiento
+                // liberar asiento correspondiente
                 for (int i = 0; i < asientos.Length; i++)
                 {
                     if (asientos[i] && pasajero.transform.IsChildOf(asientos[i]))
@@ -133,12 +165,15 @@ public class Bus : MonoBehaviour
                     }
                 }
 
-                // disparar bajada
-                Transform busRoot = transform;
-                Transform padreFuera = null; // o la Parada destino si quieres
-                pasajero.PrepararBajada(waypointsSalidaBus, busRoot, padreFuera);
+                // Punto de salida (fallback al primer WP si no hay exitAnchor)
+                Transform salida = exitAnchor != null
+                    ? exitAnchor
+                    : (waypointsSalidaBus != null && waypointsSalidaBus.Length > 0 ? waypointsSalidaBus[0] : null);
 
-                // contadores como ya haces
+                // Iniciar bajada SIN animaciones
+                pasajero.IniciarBajada(salida, waypointsSalidaBus, null);
+
+                // contadores
                 pasajerosActuales--;
                 espacioDisponible++;
                 pasajerosBajando--;
@@ -152,9 +187,8 @@ public class Bus : MonoBehaviour
         }
 
         if (pasajerosBajando == 0)
-            CancelInvoke("BajarPasajeros");
+            CancelInvoke(nameof(BajarPasajeros));
     }
-
 
     private Pasajero BuscarPasajeroEnBus()
     {
@@ -164,10 +198,10 @@ public class Bus : MonoBehaviour
         {
             if (!p || !p.transform) continue;
 
-            // Debe ser hijo del BUS en cualquier profundidad
+            // debe ser hijo del bus
             if (!p.transform.IsChildOf(transform)) continue;
 
-            // Si está sentado: su transform está dentro de alguno de los asientos[]
+            // sentado si es hijo de algún asiento
             for (int i = 0; i < asientos.Length; i++)
             {
                 if (asientos[i] && p.transform.IsChildOf(asientos[i]))
@@ -177,11 +211,7 @@ public class Bus : MonoBehaviour
         return null;
     }
 
-
-    public int PasajerosRecogidos()
-    {
-        return totalPasajerosRecogidos;
-    }
+    public int PasajerosRecogidos() => totalPasajerosRecogidos;
 
     public void EnviarTotalPasajeros()
     {

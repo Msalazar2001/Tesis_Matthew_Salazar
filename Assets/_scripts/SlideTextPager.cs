@@ -25,8 +25,9 @@ public class SlideTextPager : MonoBehaviour
     [Header("Contenido")]
     public List<PageData> pages = new List<PageData>();
 
-    [Header("Botón final (opcional)")]
-    public GameObject finalButton;  //  NUEVO
+    [Header("Botones")]
+    public GameObject finalButton;   // Botón final opcional
+    public GameObject nextButton;    // NUEVO: Botón "Next"
 
     int index = 0;
     bool busy = false;
@@ -42,7 +43,7 @@ public class SlideTextPager : MonoBehaviour
             SetPage(0);
 
         if (finalButton != null)
-            finalButton.SetActive(false); //  Ocultar al inicio
+            finalButton.SetActive(false); // Ocultar al inicio
     }
 
     void SetPage(int i)
@@ -58,9 +59,13 @@ public class SlideTextPager : MonoBehaviour
             imageHolder.enabled = false;
         }
 
-        //  Mostrar botón solo en la última página
+        // Mostrar botón final solo en la última página
         if (finalButton != null)
             finalButton.SetActive(i == pages.Count - 1);
+
+        // Ocultar botón Next en la última página
+        if (nextButton != null)
+            nextButton.SetActive(i < pages.Count - 1);
     }
 
     public void Next()
