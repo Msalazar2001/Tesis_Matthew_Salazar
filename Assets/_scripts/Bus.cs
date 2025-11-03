@@ -17,6 +17,9 @@ public class Bus : MonoBehaviour
     [SerializeField] Transform[] columnas;              // columnas/pasillo interno
     [SerializeField] Transform[] asientos;              // seat anchors (donde se sientan)
     [SerializeField] EndRunPanel endRunPanel;
+    [SerializeField] private Animator[] doorAnimators;
+    [SerializeField] private string openTrigger = "OpenDoor";
+    [SerializeField] private string closeTrigger = "CloseDoor";
 
     Parada parada;
 
@@ -32,9 +35,49 @@ public class Bus : MonoBehaviour
         asientosOcupados = new bool[asientos.Length];
     }
 
+
+    // 2) Helpers para abrir/cerrar sin repetir lógica
+    private void AbrirPuerta()
+    {
+        if (doorAnimators == null || doorAnimators.Length == 0)
+        {
+            Debug.LogWarning("[Bus] No hay animators de puertas asignados.");
+            return;
+        }
+
+        foreach (Animator anim in doorAnimators)
+        {
+            if (anim != null)
+            {
+                anim.speed = 1f;
+                anim.ResetTrigger(closeTrigger);
+                anim.SetTrigger(openTrigger);
+            }
+        }
+    }
+
+    private void CerrarPuerta()
+    {
+        if (doorAnimators == null || doorAnimators.Length == 0)
+        {
+            Debug.LogWarning("[Bus] No hay animators de puertas asignados.");
+            return;
+        }
+
+        foreach (Animator anim in doorAnimators)
+        {
+            if (anim != null)
+            {
+                anim.ResetTrigger(openTrigger);
+                anim.SetTrigger(closeTrigger);
+            }
+        }
+    }
     public void ParadaDetectada(Parada parada)
     {
         this.parada = parada;
+
+        AbrirPuerta();
 
         pasajerosBajando = Random.Range(0, pasajerosActuales + 1);
         print("Se van a bajar " + pasajerosBajando + " pasajeros.");
@@ -57,6 +100,7 @@ public class Bus : MonoBehaviour
     public void SalirDeParada(Parada parada)
     {
         print("El bus ha salido de la parada.");
+        CerrarPuerta();
     }
 
     private int BuscarPrimerAsientoLibre()
