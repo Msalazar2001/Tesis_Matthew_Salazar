@@ -37,7 +37,7 @@ namespace BNG {
         /// <summary>
         /// How much damage to apply if colliding with something at speed
         /// </summary>
-        public float CollisionDamage = 5;
+        public float CollisionDamage = 0;
 
         Damageable thisDamageable;
 
@@ -70,6 +70,15 @@ namespace BNG {
                 // Otherwise, can we take damage ourselves from this collision?
                 else if (TakeCollisionDamage && thisDamageable != null) {
                     thisDamageable.DealDamage(CollisionDamage, collision.GetContact(0).point, collision.GetContact(0).normal, true, gameObject, collision.gameObject);
+                }
+
+                // --- 👇 INTEGRACIÓN CON TU SISTEMA ---
+                if (GameManager.Instance != null)
+                {
+                    // Puedes usar Damage o CollisionDamage según lo que uses
+                    float danoAplicado = TakeCollisionDamage ? CollisionDamage : Damage;
+                    GameManager.Instance.HacerDano(danoAplicado);
+                    Debug.Log($"[DamageCollider] Daño reportado al GameManager: {danoAplicado}");
                 }
             }
         }

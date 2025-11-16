@@ -1,16 +1,16 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.SceneManagement;
+using UnityEngine.SceneManagement;  //  NECESARIO PARA SceneManager
 
 public class EndRunPanel : MonoBehaviour
 {
     [Header("Root del panel")]
     public GameObject root;
 
-    [Header("Único texto del resumen (multilínea)")]
+    [Header("Resumen de texto")]
     public TextMeshProUGUI resumenBodyText;
 
-    private bool shown;
+    bool shown;
 
     void Start()
     {
@@ -24,16 +24,24 @@ public class EndRunPanel : MonoBehaviour
 
         var gm = GameManager.Instance;
 
-        // Datos (ajusta nombres si tus getters cambian)
+        // Datos de la carrera
         int pasajeros = gm.ObtenerTotalPasajeros();
         float t = gm.ObtenerTiempoTotal();
         int min = Mathf.FloorToInt(t / 60f);
         int seg = Mathf.FloorToInt(t % 60f);
 
-        float dineroBase = gm.ObtenerDineroGanado();   // antes de descuentos
+        float dineroBase = gm.ObtenerDineroGanado();
         float descTiempo = gm.ObtenerDescuentoTiempo();
         float descDano = gm.ObtenerDescuentoDano();
-        float totalFinal = gm.ObtenerDineroFinal();    // luego de CalcularValores/EndRun
+        float totalFinal = gm.ObtenerDineroFinal();
+
+        //  Sumar esta ganancia al dinero total acumulado
+        float dineroTotalAcumulado = 0f;
+        if (MoneyManager.Instance != null)
+        {
+            MoneyManager.Instance.AddDinero(totalFinal);
+            dineroTotalAcumulado = MoneyManager.Instance.DineroTotal;
+        }
 
         if (resumenBodyText)
         {
@@ -43,7 +51,8 @@ public class EndRunPanel : MonoBehaviour
                 $"<b>Dinero base:</b> ${dineroBase:0.00}\n\n" +
                 $"<b>Descuento por tiempo:</b> -${descTiempo:0.00}\n\n" +
                 $"<b>Descuento por daño:</b> -${descDano:0.00}\n\n" +
-                $"<b>Total:</b> ${totalFinal:0.00}";
+                $"<b>Total carrera:</b> ${totalFinal:0.00}\n\n" +
+                $"<b>Dinero acumulado:</b> ${dineroTotalAcumulado:0.00}\n\n";
         }
 
         if (root) root.SetActive(true);
@@ -51,33 +60,29 @@ public class EndRunPanel : MonoBehaviour
         AudioListener.pause = true;
     }
 
-    // Botones
+    // ======== BOTONES ========
     public void OnRetry()
     {
-        Time.timeScale = 1f; AudioListener.pause = false;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
 
-    public void OnWorkshop()
-    {
-        Time.timeScale = 1f; AudioListener.pause = false;
-        SceneManager.LoadScene("Workshop");
+        if (GameManager.Instance != null)
+            GameManager.Instance.ResetRunState();
+
+        if (AsyncSceneFader.Instance != null)
+            AsyncSceneFader.Instance.FadeAndLoadScene("Juego");
+        else
+            SceneManager.LoadScene("Juego");
     }
 
     public void OnMainMenu()
     {
-        Time.timeScale = 1f; AudioListener.pause = false;
-        SceneManager.LoadScene("MainMenu");
-    }
-    void LateUpdate()
-    {
-        if (root.activeSelf)
-        {
-            Transform cam = Camera.main.transform;
-            Vector3 targetPos = cam.position + cam.forward * 2.0f; // 2m frente a la cámara
-            root.transform.position = Vector3.Lerp(root.transform.position, targetPos, 5f * Time.unscaledDeltaTime);
-            root.transform.LookAt(cam);
-            root.transform.Rotate(0, 180, 0); // para que mire hacia la cámara
-        }
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+
+        if (AsyncSceneFader.Instance != null)
+            AsyncSceneFader.Instance.FadeAndLoadScene("MainMenu");
+        else
+            SceneManager.LoadScene("MainMenu");
     }
 }

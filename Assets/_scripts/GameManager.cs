@@ -1,196 +1,173 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    // Pasajeros y dinero
+    [Header("EconomÃ­a y reglas")]
+    [SerializeField] private float tarifaBase = 2.5f;
+    [SerializeField] private float tiempoPropuesto = 180f;
+    [SerializeField] private float penalizacionPorSegundo = 1.5f;
+    [SerializeField] private float danoMaximo = 200f;
+
+    [Header("UI / Flow")]
+    [SerializeField] private GameObject gameOverPanel;
+
+    // ======== ESTADO DE PARTIDA ========
     int totalPasajerosRecogidos = 0;
     float dineroGanado = 0f;
     float dineroFinal = 0f;
-
-    // Cronómetro (tiempo total desde que inicia el juego)
     float tiempoTotal = 0f;
     bool contarTiempo = false;
-    [SerializeField]
-    float tiempoPropuesto;
+    float danoTotal = 0f;
+    float descuentoTiempo = 0f;
+    float descuentoDano = 0f;
+    bool gameOverActivado = false;
 
-    float penalizacionPorSegundo = 1.5f;
-
-    [SerializeField]
-    float danoTotal=0;
-
-    float descuento = 0;
-
-    [SerializeField]
-    float descuentoDano = 0;
-    private void Awake()
+    // ======== SINGLETON (SOLO EN ESTA ESCENA) ========
+    void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
+
+        // âš ï¸ IMPORTANTE:
+        // YA NO usamos DontDestroyOnLoad.
+        // Este GameManager vive solo mientras la escena "Juego" estÃ¡ cargada.
     }
 
-    private void Start()
+    void Start()
     {
-        IniciarCronometro();
+        // Cuando entras a la escena Juego, siempre empezamos desde cero
+        ResetRunState();
+        BeginRun();
     }
 
-    private void Update()
+    void Update()
     {
         if (contarTiempo)
-        {
             tiempoTotal += Time.deltaTime;
-        }
     }
 
-    public void IniciarCronometro()
+    // ======== CONTROL DE PARTIDA ========
+    public void ResetRunState()
     {
+        totalPasajerosRecogidos = 0;
+        dineroGanado = 0f;
+        dineroFinal = 0f;
         tiempoTotal = 0f;
-        contarTiempo = true;
+        contarTiempo = false;
+        danoTotal = 0f;
+        descuentoTiempo = 0f;
+        descuentoDano = 0f;
+        gameOverActivado = false;
+
+        Time.timeScale = 1f;
+        AudioListener.pause = false;
+        if (gameOverPanel) gameOverPanel.SetActive(false);
     }
 
-    public void DetenerCronometro()
+    public void BeginRun()
     {
-        contarTiempo = false;
-        print("Cronómetro detenido.");
-        print("Tiempo total del jugador: " + tiempoTotal + " segundos.");
+        contarTiempo = true;
+        Debug.Log("[GameManager] Nueva partida iniciada.");
+    }
 
+    public void EndRun()
+    {
+        DetenerCronometro();
+
+        // Descuento por tiempo
         if (tiempoTotal > tiempoPropuesto)
         {
             float diferencia = tiempoTotal - tiempoPropuesto;
-            descuento = diferencia * penalizacionPorSegundo;
-
-            print("El jugador se demoró " + diferencia + " segundos más de lo propuesto.");
-            print("Penalización aplicada: $" + descuento);
-
-            if (dineroFinal < 0)
-            {
-                dineroFinal = 0;
-            }
-
-            //print("Dinero final con penalización: $" + dineroFinal);
+            descuentoTiempo = Mathf.Max(0f, diferencia * penalizacionPorSegundo);
         }
         else
         {
-            dineroFinal = dineroGanado;
-            print("El jugador completó el recorrido dentro del tiempo propuesto.");
+            descuentoTiempo = 0f;
         }
+
+        // Descuento por daÃ±o
+        descuentoDano = danoTotal / 100f;
+
+        // Resultado final de la carrera (nunca negativo)
+        dineroFinal = Mathf.Max(0f, dineroGanado - descuentoTiempo - descuentoDano);
+
+        Debug.Log($"[EndRun] Base:{dineroGanado} Tiempo:-{descuentoTiempo} DaÃ±o:-{descuentoDano} => Final:{dineroFinal}");
     }
 
-    [SerializeField] float tarifaBase = 2.5f;
+    // ======== CRONÃ“METRO ========
+    public void IniciarCronometro() => contarTiempo = true;
+    public void DetenerCronometro() => contarTiempo = false;
 
- 
+    // ======== PASAJEROS / DINERO ========
     public void PasajeroSubio(int cantidad = 1)
     {
         if (cantidad <= 0) return;
         totalPasajerosRecogidos += cantidad;
         dineroGanado += cantidad * tarifaBase;
     }
+
     public void RecibirPasajerosRecogidos(int cantidad)
     {
-        totalPasajerosRecogidos = cantidad;
-        dineroGanado = totalPasajerosRecogidos * 2.5f;
-        //dineroFinal = dineroGanado;
-
-        print("GameManager recibió: " + cantidad + " pasajeros.");
-        print("Dinero final: $" + dineroFinal);
+        totalPasajerosRecogidos = Mathf.Max(0, cantidad);
+        dineroGanado = totalPasajerosRecogidos * tarifaBase;
     }
 
-    public int ObtenerTotalPasajeros()
+    // ======== DAÃ‘O ========
+    public void HacerDano(float cantidad)
     {
-        return totalPasajerosRecogidos;
+        if (cantidad <= 0f) return;
+        danoTotal += cantidad;
+        VerificarGameOver();
     }
 
-    public float ObtenerDineroGanado()
+    void VerificarGameOver()
     {
-        return dineroGanado;
+        float porcentaje = ObtenerDanoPorcentaje100();
+        Debug.Log($"[DANO] Total={danoTotal}, Max={danoMaximo}, %={porcentaje}");
+        if (!gameOverActivado && ObtenerDanoPorcentaje100() >= 100f)
+        {
+            gameOverActivado = true;
+            GameOver();
+        }
     }
 
-    public float ObtenerDineroFinal()
+    public void GameOver()
     {
-        return dineroFinal;
+        Time.timeScale = 0f;
+        if (gameOverPanel)
+            gameOverPanel.SetActive(true);
+
+        Debug.Log("GAME OVER: daÃ±o mÃ¡ximo alcanzado");
     }
 
-    public float ObtenerTiempoTotal()
-    {
-        return tiempoTotal;
-    }
+    // ======== GETTERS ========
+    public int ObtenerTotalPasajeros() => totalPasajerosRecogidos;
+    public float ObtenerDineroGanado() => dineroGanado;
+    public float ObtenerDineroFinal() => dineroFinal;
+    public float ObtenerTiempoTotal() => tiempoTotal;
+    public float ObtenerTiempoRestante() => Mathf.Max(0f, tiempoPropuesto - tiempoTotal);
+    public bool EstaEnOvertime() => tiempoTotal > tiempoPropuesto;
+    public float ObtenerDanoTotal() => danoTotal;
+    public float ObtenerDanoMaximo() => danoMaximo;
+    public float ObtenerDanoPorcentaje01() => Mathf.Clamp01(danoTotal / Mathf.Max(0.0001f, danoMaximo));
+    public float ObtenerDanoPorcentaje100() => ObtenerDanoPorcentaje01() * 100f;
+    public float ObtenerDescuentoTiempo() => descuentoTiempo;
+    public float ObtenerDescuentoDano() => descuentoDano;
 
-    // Devuelve el tiempo restante (si es negativo, retorna 0)
-    public float ObtenerTiempoRestante()
-    {
-        return Mathf.Max(0f, tiempoPropuesto - tiempoTotal);
-    }
-
-    // Devuelve true si ya se pasó del tiempo propuesto
-    public bool EstaEnOvertime()
-    {
-        return tiempoTotal > tiempoPropuesto;
-    }
-
-    // Devuelve el tiempo restante en formato mm:ss
-    // Si allowNegative = true, cuando estés en overtime devuelve "+mm:ss"
     public string TiempoRestanteStr(bool allowNegative = true)
     {
         float diff = tiempoPropuesto - tiempoTotal;
-
-        if (!allowNegative)
-        {
-            diff = Mathf.Max(0f, diff);
-        }
-
+        if (!allowNegative) diff = Mathf.Max(0f, diff);
         bool overtime = diff < 0f;
         float t = Mathf.Abs(diff);
-
         int m = Mathf.FloorToInt(t / 60f);
         int s = Mathf.FloorToInt(t % 60f);
-
-        if (overtime && allowNegative)
-        {
-            return $"+{m:00}:{s:00}";
-        }
-        else
-        {
-            return $"{m:00}:{s:00}";
-        }
+        return overtime && allowNegative ? $"+{m:00}:{s:00}" : $"{m:00}:{s:00}";
     }
-
-
-    public void HacerDano(float t)
-    {
-       
-        danoTotal += t;
-        print(t);
-        descuentoDano = danoTotal / 100;
-        //dineroFinal = dineroGanado - danoTotal;
-    }
-
-    public float ObtenerDescuentoTiempo() { return descuento; }
-    public float ObtenerDescuentoDano() { return descuentoDano; }
-
-    public float CalcularValores()
-    {
-        float resultadoFinal = 0;
-        resultadoFinal = dineroGanado-descuento-descuentoDano;
-
-        print("----- RESUMEN FINAL -----");
-        print("Pasajeros recogidos: " + totalPasajerosRecogidos);
-        print("Dinero base ganado: " + dineroGanado);
-        print("Descuento por tiempo: " + descuento);
-        print("Daño total acumulado: " + descuentoDano);
-        print("Resultado final: $" + resultadoFinal);
-
-        return resultadoFinal;
-
-    }
-
-    // GameManager.cs (agrega al final de la clase)
-    public void EndRun()
-    {
-        // Ya tienes estas llamadas repartidas; aquí las centralizamos si quieres llamarlo desde varios sitios
-        DetenerCronometro();
-        dineroFinal = CalcularValores(); // guarda el resultado final
-        Debug.Log($"[EndRun] Dinero final guardado: ${dineroFinal:0.00}");
-    }
-
-
 }

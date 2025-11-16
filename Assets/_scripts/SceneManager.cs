@@ -31,5 +31,7 @@ public class SceneLoader : MonoBehaviour
         AudioListener.pause = false;
         Debug.Log($"[SceneLoader] Cargando escena: {sceneName}");
         SceneManager.LoadScene(sceneName);
+
     }
+
 }

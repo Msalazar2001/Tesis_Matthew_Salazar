@@ -22994,6 +22994,9 @@ MonoBehaviour:
   - {fileID: 7610093081722720543}
   - {fileID: 908450054756874485}
   endRunPanel: {fileID: 0}
+  doorAnimators: []
+  openTrigger: OpenDoor
+  closeTrigger: CloseDoor
   estoyEnParada: 0
   pasajerosActuales: 0
   pasajerosBajando: 0
@@ -36239,7 +36242,7 @@ Transform:
   m_GameObject: {fileID: 7434165918657806572}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 1.0038041, z: -8.894553}
+  m_LocalPosition: {x: -3.71, y: 1, z: -8.89}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
