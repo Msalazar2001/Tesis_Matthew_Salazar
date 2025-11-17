@@ -67,7 +67,7 @@ public class GameManager : MonoBehaviour
 
         Time.timeScale = 1f;
         AudioListener.pause = false;
-        if (gameOverPanel) gameOverPanel.SetActive(false);
+        //if (gameOverPanel) gameOverPanel.SetActive(false);
     }
 
     public void BeginRun()
@@ -139,7 +139,7 @@ public class GameManager : MonoBehaviour
 
     public void GameOver()
     {
-        Time.timeScale = 0f;
+        //Time.timeScale = 0f;
         if (gameOverPanel)
             gameOverPanel.SetActive(true);
 
